@@ -1,0 +1,225 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: linear-gradient(135deg, #1a1410 0%, #2d1f15 50%, #1a1410 100%);
+    min-height: 100vh;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* Main Scroll Container */
+.scroll-container {
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+}
+
+/* The Scroll Paper */
+.scroll-content {
+    background: 
+        /* Parchment texture simulation */
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(139, 119, 101, 0.03) 2px,
+            rgba(139, 119, 101, 0.03) 4px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 2px,
+            rgba(139, 119, 101, 0.03) 2px,
+            rgba(139, 119, 101, 0.03) 4px
+        ),
+        /* Main parchment color with gradient for depth */
+        radial-gradient(ellipse at center, #f4e8d0 0%, #e8d5b7 50%, #d4c4a8 100%);
+    
+    border-radius: 8px;
+    position: relative;
+    padding: 60px 40px 40px 40px;
+    box-shadow: 
+        inset 0 0 100px rgba(194, 170, 133, 0.3),
+        inset 0 0 20px rgba(139, 119, 101, 0.2),
+        0 0 0 1px rgba(139, 119, 101, 0.3);
+}
+
+/* Scroll top rolled edge */
+.scroll-content::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: 
+        linear-gradient(180deg, 
+            #8b7765 0%, 
+            #a0907a 20%, 
+            #b8a890 40%, 
+            #d4c4a8 60%,
+            transparent 100%
+        );
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Scroll bottom rolled edge */
+.scroll-content::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: 
+        linear-gradient(0deg, 
+            #8b7765 0%, 
+            #a0907a 20%, 
+            #b8a890 40%, 
+            #d4c4a8 60%,
+            transparent 100%
+        );
+    border-radius: 0 0 50% 50% / 0 0 100% 100%;
+    box-shadow: 
+        0 -2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Left scroll rod/dowel */
+.scroll-container::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: -25px;
+    bottom: -25px;
+    width: 20px;
+    background: 
+        linear-gradient(90deg, 
+            #3a2817 0%, 
+            #4a3520 20%, 
+            #5a4428 50%, 
+            #4a3520 80%, 
+            #3a2817 100%
+        );
+    border-radius: 10px;
+    box-shadow: 
+        2px 0 8px rgba(0, 0, 0, 0.5),
+        inset 0 0 5px rgba(0, 0, 0, 0.3),
+        inset 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Right scroll rod/dowel */
+.scroll-container::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: -25px;
+    bottom: -25px;
+    width: 20px;
+    background: 
+        linear-gradient(90deg, 
+            #3a2817 0%, 
+            #4a3520 20%, 
+            #5a4428 50%, 
+            #4a3520 80%, 
+            #3a2817 100%
+        );
+    border-radius: 10px;
+    box-shadow: 
+        -2px 0 8px rgba(0, 0, 0, 0.5),
+        inset 0 0 5px rgba(0, 0, 0, 0.3),
+        inset -1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Header styling */
+.scroll-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(139, 119, 101, 0.3);
+}
+
+.scroll-header h1 {
+    font-size: 2.5em;
+    color: #3a2a1a;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    font-family: 'Georgia', serif;
+    font-weight: bold;
+}
+
+.scroll-header p {
+    font-size: 1.1em;
+    color: #5a4a3a;
+    font-style: italic;
+}
+
+/* Body content area */
+.scroll-body {
+    min-height: 300px;
+}
+
+/* Aged paper effect - subtle stains and wear marks */
+.scroll-content {
+    background-image: 
+        /* Random stains */
+        radial-gradient(ellipse at 80% 20%, rgba(139, 119, 101, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 80%, rgba(139, 119, 101, 0.06) 0%, transparent 40%),
+        radial-gradient(ellipse at 60% 60%, rgba(139, 119, 101, 0.05) 0%, transparent 30%),
+        /* Texture */
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(139, 119, 101, 0.03) 2px,
+            rgba(139, 119, 101, 0.03) 4px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 2px,
+            rgba(139, 119, 101, 0.03) 2px,
+            rgba(139, 119, 101, 0.03) 4px
+        ),
+        /* Base color */
+        radial-gradient(ellipse at center, #f4e8d0 0%, #e8d5b7 50%, #d4c4a8 100%);
+}
+
+/* Torn/rough edges effect */
+.scroll-content {
+    border-left: 3px solid rgba(139, 119, 101, 0.2);
+    border-right: 3px solid rgba(139, 119, 101, 0.2);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    body {
+        padding: 20px 10px;
+    }
+    
+    .scroll-content {
+        padding: 50px 25px 30px 25px;
+    }
+    
+    .scroll-header h1 {
+        font-size: 2em;
+    }
+    
+    .scroll-container::before,
+    .scroll-container::after {
+        width: 15px;
+        left: -15px;
+        right: -15px;
+    }
+}
