@@ -8,9 +8,21 @@
 <body>
     <header>
     <h1>RuneHelp</h1>
+    <style>
+        
+    body {
+    background-image: url('../images/paperBack.jpg');
+    background-repeat: no-repeat;
+    }
+    </style> 
+</body>
+
+<header>
+    <h1 style="text-align: center;">Rune Tracker</h1>
 </header>
 
-    <main>
+    <div class="user_search">
+        
         <section class="search">
             <input type="text" placeholder="Enter username" id="searchInput">
             <button id="searchButton">Search</button>
@@ -19,9 +31,16 @@
         <section class="results">
             <!-- Player stats will go here -->
         </section>
-    </main>
+    </div>
 
-    <footer>
+    <div class="news">
+
+        <section class>
+            
+        </section>
+    </div>
+
+    <footer style="text-align: center;">
         <p>Data from RuneScape</p>
     </footer>
     <script src="script.js"></script>
