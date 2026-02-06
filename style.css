@@ -1,6 +1,6 @@
 @font-face {
     font-family: 'RuneScapeFont';
-    src: url('./font/runescape_uf.ttf') format('truetype');
+    src: url('./font/runescape_uf.ttf');
     font-weight: normal;
     font-style: normal;
 }
@@ -10,4 +10,8 @@
   width:300px;
   margin:0 auto;
 
+}
+body
+{
+  font-family: 'RuneScapeFont', Arial, sans-serif;
 }
