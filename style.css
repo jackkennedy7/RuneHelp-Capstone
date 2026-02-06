@@ -6,7 +6,23 @@
   margin:0 auto;
 
 }
-body 
+
+ 
+@font-face 
 {
-    font-family: 'MedievalSharp', serif;
+
+  font-family: rsFont;
+  src: url("./font/RuneScape-Bold-12.otf") format("opentype");
+}
+
+body
+{
+  font-family: rsFont;
+  font-weight: bold;
+
+}
+h1
+{
+  font-family: rsFont;
+  font-weight: bold;
 }
