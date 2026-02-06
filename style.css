@@ -1,3 +1,9 @@
+@font-face {
+    font-family: 'RuneScapeFont';
+    src: url('./font/runescape_uf.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
 .user_search
 {
   
