@@ -1,10 +1,4 @@
-@font-face 
-{
-  font-family: 'RuneScapeFont';
-  src: url('./font/rs_font.woff2');
-  font-weight: normal;
-  font-style: normal;
-}
+
 .user_search
 {
   
@@ -12,7 +6,7 @@
   margin:0 auto;
 
 }
-body
+body 
 {
-  font-family: 'RuneScapeFont';
+    font-family: 'MedievalSharp', serif;
 }
