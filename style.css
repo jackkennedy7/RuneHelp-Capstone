@@ -25,6 +25,7 @@ h1
 {
   font-family: rsFont;
   font-weight: bold;
-  text-align: center;
+  width:300px;
+  margin:0 auto;
 }
 
