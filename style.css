@@ -12,6 +12,10 @@ button
 {
   font-family: rsFont;
 }
+img
+{
+  max-width: 100%;   
+}
 .main-col
 {
     width: 20%;
