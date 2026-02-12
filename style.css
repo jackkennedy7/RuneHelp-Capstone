@@ -28,19 +28,27 @@ h1
   width:300px;
   margin:0 auto;
 }
+.page-wrapper 
+{
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+}
 .news 
 {
     width: 20%;
-    display: inline-block;
     background-color: rgba(255, 255, 255, 0.9);
     padding: 20px;
     border: 2px solid #8b4513;
     border-radius: 8px;
     height: fit-content;
-    
 }
 .news_content h2 
 {
     margin-top: 0;
     text-align: center;
 }
+.main-col {
+    flex: 1;
+}
+
