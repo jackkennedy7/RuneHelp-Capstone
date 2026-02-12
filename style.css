@@ -1,10 +1,16 @@
 
 .user_search
 {
-  
   width:250px;
   margin: 0;
-
+}
+input
+{
+  font-family: rsFont;
+}
+button
+{
+  font-family: rsFont;
 }
 .main-col
 {
@@ -14,21 +20,16 @@
     border: 2px solid #8b4513;
     border-radius: 15px;
     height: fit-content;
-    
 }
- 
 @font-face 
 {
-
   font-family: rsFont;
   src: url("./font/RuneScape-Bold-12.otf") format("opentype");
 }
-
 body
 {
   font-family: rsFont;
   font-weight: bold;
-
 }
 h1
 {
@@ -42,7 +43,6 @@ h1
     display: flex;
     gap: 20px;
     padding: 20px;
-    
 }
 .news 
 {
@@ -55,7 +55,6 @@ h1
     margin-left: 15px;
     margin-right: auto;
     margin-top: 7%;
-    
 }
 .news_content h2 
 {
