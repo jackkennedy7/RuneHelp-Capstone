@@ -7,6 +7,14 @@ searchButton.addEventListener('click', () => {
         alert('Please enter a username');
         return;
     }
+    fetch(`http://localhost:3000/api/player/${username}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Backend response:", data);
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
     
     // Fetch player stats from the backend
     //Needs to be implemented

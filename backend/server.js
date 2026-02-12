@@ -1,9 +1,20 @@
+require("dotenv").config();
+
 const express = require('express');
+const cors = require('cors');
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+app.use(cors());
+
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 app.get("/", (req, res) => {
     res.send("RuneHelp backend is running");
