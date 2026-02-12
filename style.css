@@ -2,11 +2,20 @@
 .user_search
 {
   
-  width:300px;
-  margin:0 auto;
+  width:250px;
+  margin: 0;
 
 }
-
+.main-col
+{
+    width: 20%;
+    background-color: rgba(255, 255, 245, 0.9);
+    padding: 30px;
+    border: 2px solid #8b4513;
+    border-radius: 15px;
+    height: fit-content;
+    
+}
  
 @font-face 
 {
@@ -25,7 +34,7 @@ h1
 {
   font-family: rsFont;
   font-weight: bold;
-  width:300px;
+  width:200px;
   margin:0 auto;
 }
 .page-wrapper 
@@ -38,12 +47,15 @@ h1
 .news 
 {
     width: 20%;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 245, 0.9);
     padding: 20px;
     border: 2px solid #8b4513;
     border-radius: 8px;
     height: fit-content;
-    margin-left: 50px;
+    margin-left: 15px;
+    margin-right: auto;
+    margin-top: 7%;
+    
 }
 .news_content h2 
 {
@@ -53,4 +65,14 @@ h1
 .main-col {
     flex: 1;
 }
-
+.chat{
+    width: 20%;
+    background-color: rgba(255, 255, 245, 0.9);
+    padding: 20px;
+    border: 2px solid #8b4513;
+    border-radius: 8px;
+    height: fit-content;
+    margin-left: 1px;
+    margin-right: 15px;
+    margin-top: 7%;
+}
