@@ -7,7 +7,7 @@ searchButton.addEventListener('click', () => {
         alert('Please enter a username');
         return;
     }
-    fetch(`http://localhost:3000/api/player/${username}`)
+    fetch(`https://runehelp.onrender.com/api/player/${username}`)
         .then(response => response.json())
         .then(data => {
             console.log("Backend response:", data);
