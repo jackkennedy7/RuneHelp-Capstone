@@ -66,7 +66,7 @@ app.get("/api/player/:username", async (req, res) => {
   const username = req.params.username.trim();
 
   try {
-    //Ensure player exists in the database
+    // 1️⃣ Ensure player exists
     const playerResult = await pool.query(
       `INSERT INTO players (username)
        VALUES ($1)
@@ -76,56 +76,43 @@ app.get("/api/player/:username", async (req, res) => {
     );
     const playerId = playerResult.rows[0].id;
 
-    //Check latest snapshot for caching
+    // 2️⃣ Check latest snapshot for caching
     const latestSnapshotResult = await pool.query(
-      `
-      SELECT id, created_at
-      FROM snapshots
-      WHERE player_id = $1
-      ORDER BY created_at DESC
-      LIMIT 1
-      `,
+      `SELECT id, created_at
+       FROM snapshots
+       WHERE player_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
       [playerId]
     );
-
     const latestSnapshot = latestSnapshotResult.rows[0] || null;
 
     if (latestSnapshot) {
       const diffMinutes = (Date.now() - new Date(latestSnapshot.created_at)) / (1000 * 60);
       if (diffMinutes < 5) {
-        // Return cached snapshot
         return await returnSnapshot(res, username, latestSnapshot.id);
       }
     }
 
-    //Fetch OSRS Lite hiscores
+    // 3️⃣ Fetch hiscores JSON
     const response = await fetch(
       `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`
     );
     if (!response.ok) return res.status(404).json({ error: "Player not found" });
 
-    const data = await response.json(); // JSON array of arrays
+    const data = await response.json();
 
-    if (!data || !data.length) return res.status(404).json({ error: "Player not found" });
-
-    //Map skills
-    const skillNames = [
-      "Overall","Attack","Defence","Strength","Hitpoints","Ranged","Prayer","Magic","Cooking",
-      "Woodcutting","Fletching","Fishing","Firemaking","Crafting","Smithing","Mining","Herblore",
-      "Agility","Thieving","Slayer","Farming","Runecrafting","Hunter","Construction"
-    ];
-
+    // --- 4️⃣ Parse skills ---
     const skills = {};
-    for (let i = 0; i < skillNames.length; i++) {
-      const parts = data[i] || [0, 0, 0];
-      skills[skillNames[i]] = {
-        rank: Number(parts[0]) || 0,
-        level: Number(parts[1]) || 0,
-        xp: Number(parts[2]) || 0
+    for (const skill of data.skills) {
+      skills[skill.name] = {
+        rank: skill.rank,
+        level: skill.level,
+        xp: skill.xp
       };
     }
 
-    //Map bosses
+    // --- 5️⃣ Parse bosses ---
     const bossNames = [
       "Abyssal Sire","Alchemical Hydra","Barrows Chests","Bryophyta","Callisto",
       "Cerberus","Chambers of Xeric","Chambers of Xeric Challenge Mode","Chaos Elemental","Chaos Fanatic",
@@ -137,16 +124,20 @@ app.get("/api/player/:username", async (req, res) => {
       "TzKal-Zuk","TzTok-Jad","Venenatis","Vet'ion","Vorkath","Wintertodt","Zalcano","Zulrah"
     ];
 
+    const activitiesMap = Object.fromEntries(
+      data.activities.map(a => [a.name, a])
+    );
+
     const bosses = {};
-    for (let i = 0; i < bossNames.length; i++) {
-      const parts = data[skillNames.length + i] || [0, 0]; // rank, kills
-      bosses[bossNames[i]] = {
-        rank: Number(parts[0]) || 0,
-        kills: Number(parts[1]) || 0
+    for (const name of bossNames) {
+      const activity = activitiesMap[name] || { rank: -1, score: 0 };
+      bosses[name] = {
+        rank: activity.rank,
+        kills: activity.score
       };
     }
 
-    //Load previous snapshot for deltas
+    // --- 6️⃣ Load previous snapshot for deltas ---
     let prevSkills = {};
     let prevBosses = {};
     if (latestSnapshot) {
@@ -167,9 +158,10 @@ app.get("/api/player/:username", async (req, res) => {
       });
     }
 
-    //Compute deltas
+    // --- 7️⃣ Compute deltas ---
     const skillsWithDiffs = {};
     let hasChanges = false;
+
     for (const [name, skill] of Object.entries(skills)) {
       const prev = prevSkills[name] || { level: 0, xp: 0 };
       const levelDiff = skill.level - prev.level;
@@ -186,12 +178,12 @@ app.get("/api/player/:username", async (req, res) => {
       if (killsDiff !== 0) hasChanges = true;
     }
 
-    //Skip snapshot insert if nothing changed
+    // --- 8️⃣ Skip snapshot insert if nothing changed ---
     if (!hasChanges && latestSnapshot) {
       return await returnSnapshot(res, username, latestSnapshot.id);
     }
 
-    //Insert new snapshot
+    // --- 9️⃣ Insert new snapshot ---
     const snapshotResult = await pool.query(
       "INSERT INTO snapshots (player_id) VALUES ($1) RETURNING id",
       [playerId]
@@ -216,7 +208,7 @@ app.get("/api/player/:username", async (req, res) => {
     );
     await Promise.all(bossPromises);
 
-    //Return response
+    // --- 10️⃣ Return response ---
     res.json({
       username,
       skills: skillsWithDiffs,
