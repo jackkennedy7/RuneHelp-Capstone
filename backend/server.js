@@ -89,7 +89,7 @@ app.get("/api/player/:username",async (req, res) => {
       };
     }
 
-      const skillInsertPromises = Object.entries(data.skills).map(([skillName, skill]) =>
+      const skillInsertPromises = data.skills.map((skill) =>
         pool.query(
           "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
           [snapshotId, skill.name, skill.level, skill.xp]
