@@ -73,7 +73,7 @@ app.get("/api/player/:username", async (req, res) => {
     );
     const playerId = playerResult.rows[0].id;
 
-    // Get latest snapshot
+    // Get latest snapshot for caching
     const latestSnapshotResult = await pool.query(
       `
       SELECT id, created_at
@@ -96,18 +96,21 @@ app.get("/api/player/:username", async (req, res) => {
       }
     }
 
-    // Fetch RuneScape hiscores
+    // Fetch full hiscores JSON (skills + bosses)
     const response = await fetch(
-  `https://secure.runescape.com/m=hiscore_oldschool/index.json?player=${encodeURIComponent(username)}`
-);
-
+      `https://secure.runescape.com/m=hiscore_oldschool/index.json?player=${encodeURIComponent(username)}`
+    );
 
     if (!response.ok)
       return res.status(404).json({ error: "Player not found" });
 
     const data = await response.json();
 
-    // Load previous skills and bosses for delta calculation
+    // Make sure arrays exist
+    const skills = Array.isArray(data.skills) ? data.skills : [];
+    const bosses = Array.isArray(data.bosses) ? data.bosses : [];
+
+    // Load previous snapshot for delta calculations
     let previousSkills = {};
     let previousBosses = {};
 
@@ -129,25 +132,23 @@ app.get("/api/player/:username", async (req, res) => {
       });
     }
 
-    // Check for changes (skip snapshot if nothing changed)
+    // Check if anything changed (skip snapshot if nothing changed)
     let hasChanges = false;
 
-    // Check skills
-    if (data.skills) {
-      for (const skill of data.skills) {
-        const prev = previousSkills[skill.name];
-        if (!prev || prev.level !== skill.level || prev.xp !== skill.xp) {
-          hasChanges = true;
-          break;
-        }
+    // Skills
+    for (const skill of skills) {
+      const prev = previousSkills[skill.name] || { level: 0, xp: 0 };
+      if ((skill.level ?? 0) !== prev.level || (skill.xp ?? 0) !== prev.xp) {
+        hasChanges = true;
+        break;
       }
     }
 
-    // Check bosses only if no skill changes detected
-    if (!hasChanges && data.bosses) {
-      for (const boss of data.bosses) {
-        const prev = previousBosses[boss.name] || 0;
-        if (prev !== boss.score) {
+    // Bosses (only check if no skill changes)
+    if (!hasChanges) {
+      for (const boss of bosses) {
+        const prevKills = previousBosses[boss.name] ?? 0;
+        if ((boss.score ?? 0) !== prevKills) {
           hasChanges = true;
           break;
         }
@@ -165,44 +166,40 @@ app.get("/api/player/:username", async (req, res) => {
     );
     const snapshotId = snapshotResult.rows[0].id;
 
-    // Insert skills
+    // Insert skills with delta calculation
     const skillsWithDiffs = {};
-    if (data.skills) {
-      const skillPromises = data.skills.map(skill => {
-        const prev = previousSkills[skill.name];
-        skillsWithDiffs[skill.name] = {
-          level: skill.level,
-          xp: skill.xp,
-          levelDiff: prev ? skill.level - prev.level : 0,
-          xpDiff: prev ? skill.xp - prev.xp : 0
-        };
-        return pool.query(
-          "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
-          [snapshotId, skill.name, skill.level, skill.xp]
-        );
-      });
-      await Promise.all(skillPromises);
-    }
+    const skillPromises = skills.map(skill => {
+      const prev = previousSkills[skill.name] || { level: 0, xp: 0 };
+      skillsWithDiffs[skill.name] = {
+        level: skill.level ?? 0,
+        xp: skill.xp ?? 0,
+        levelDiff: (skill.level ?? 0) - prev.level,
+        xpDiff: (skill.xp ?? 0) - prev.xp
+      };
+      return pool.query(
+        "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
+        [snapshotId, skill.name, skill.level ?? 0, skill.xp ?? 0]
+      );
+    });
+    await Promise.all(skillPromises);
 
-    // Insert bosses
+    // Insert bosses with delta calculation
     const bossesWithDiffs = {};
-    if (data.bosses) {
-      const bossPromises = data.bosses.map(boss => {
-        const prevKills = previousBosses[boss.name] || 0;
-        bossesWithDiffs[boss.name] = {
-          kills: boss.score,
-          rank: boss.rank,
-          killsDiff: boss.score - prevKills
-        };
-        return pool.query(
-          "INSERT INTO bosskills (snapshot_id, boss_name, kills, rank) VALUES ($1, $2, $3, $4)",
-          [snapshotId, boss.name, boss.score, boss.rank]
-        );
-      });
-      await Promise.all(bossPromises);
-    }
+    const bossPromises = bosses.map(boss => {
+      const prevKills = previousBosses[boss.name] ?? 0;
+      bossesWithDiffs[boss.name] = {
+        kills: boss.score ?? 0,
+        rank: boss.rank ?? 0,
+        killsDiff: (boss.score ?? 0) - prevKills
+      };
+      return pool.query(
+        "INSERT INTO bosskills (snapshot_id, boss_name, kills, rank) VALUES ($1, $2, $3, $4)",
+        [snapshotId, boss.name, boss.score ?? 0, boss.rank ?? 0]
+      );
+    });
+    await Promise.all(bossPromises);
 
-    // Return JSON
+    // Return response
     res.json({
       username,
       skills: skillsWithDiffs,
