@@ -24,43 +24,84 @@ app.get("/", (req, res) => {
 
 app.get("/api/player/:username",async (req, res) => {
     const username = req.params.username;
-try {
-    // 1️⃣ Fetch JSON hiscores
-    const response = await fetch(`https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`);
-    if (!response.ok) return res.status(404).json({ error: "Player not found" });
+    try {
+      const response = await fetch(`https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`);
+      if (!response.ok) return res.status(404).json({ error: "Player not found" });
 
-    const data = await response.json(); // already JSON
-    // data.skills, data.minigames, etc.
+      const data = await response.json();
+  
+      const playerResult = await pool.query(
+        "INSERT INTO players (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING id",
+        [username]
+      );
+      const playerId = playerResult.rows[0].id;
 
-    // 2️⃣ Save to database
-    // Insert player if not exists
-    const playerResult = await pool.query(
-      "INSERT INTO players (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING id",
-      [username]
-    );
-    const playerId = playerResult.rows[0].id;
+      // Insert snapshot
+      const snapshotResult = await pool.query(
+        "INSERT INTO snapshots (player_id) VALUES ($1) RETURNING id",
+        [playerId]
+      );
+      const snapshotId = snapshotResult.rows[0].id;
 
-    // Insert snapshot
-    const snapshotResult = await pool.query(
-      "INSERT INTO snapshots (player_id) VALUES ($1) RETURNING id",
-      [playerId]
-    );
-    const snapshotId = snapshotResult.rows[0].id;
+      const prevSnapshotResult = await pool.query(
+        `
+        SELECT id
+        FROM snapshots
+        WHERE player_id = $1
+          AND id <> $2
+        ORDER BY created_at DESC
+        LIMIT 1
+        `,
+        [playerId, snapshotId]
+      );
+      const prevSnapshotId = prevSnapshotResult.rows[0]?.id || null;
 
-    // Insert skills
-    const skillInsertPromises = Object.entries(data.skills).map(([skillName, skill]) =>
-      pool.query(
-        "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
-        [snapshotId, skillName, skill.level, skill.xp]
-      )
-    );
-    await Promise.all(skillInsertPromises);
+      let previousSkills = {};
 
-    // 3️⃣ Return JSON to frontend
+      if (prevSnapshotId) {
+        const prevSkillsResult = await pool.query(
+          `
+          SELECT skill_name, level, xp
+          FROM skills
+          WHERE snapshot_id = $1
+          `,
+          [prevSnapshotId]
+        );
+
+        prevSkillsResult.rows.forEach(row => {
+          previousSkills[row.skill_name] = {
+            level: row.level,
+            xp: row.xp
+          };
+        });
+      }
+
+    const skillsWithDiffs = {};
+
+    for (const [skillName, skill] of Object.entries(data.skills)) {
+        const prev = previousSkills[skillName];
+        skillsWithDiffs[skillName] = {
+        level: skill.level,
+        xp: skill.xp,
+        levelDiff: prev ? skill.level - prev.level : 0,
+        xpDiff: prev ? skill.xp - prev.xp : 0
+      };
+    }
+
+
+      // Insert skills
+      const skillInsertPromises = Object.entries(data.skills).map(([skillName, skill]) =>
+        pool.query(
+          "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
+          [snapshotId, skill.Name, skill.level, skill.xp]
+        )
+      );
+      await Promise.all(skillInsertPromises);
+
     res.json({
       username,
-      snapshotId,
-      skills: data.skills
+      skills: skillsWithDiffs,
+      hasPreviousSnapshot: !!prevSnapshotId
     });
 
   } catch (err) {
@@ -68,6 +109,7 @@ try {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
