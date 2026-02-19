@@ -41,13 +41,13 @@ async function returnSnapshot(res, username, snapshotId) {
 
   // Load bosses
   const bossesResult = await pool.query(
-    "SELECT bossName, kills, rank FROM bosskills WHERE snapshot_id = $1",
+    'SELECT "bossName", kills, rank FROM bosskills WHERE snapshot_id = $1',
     [snapshotId]
   );
 
   const bosses = {};
   bossesResult.rows.forEach(row => {
-    bosses[row.boss_name] = {
+    bosses[row.bossName] = {
       kills: row.kills,
       rank: row.rank,
       killsDiff: 0
@@ -159,11 +159,11 @@ app.get("/api/player/:username", async (req, res) => {
       });
 
       const prevBossResult = await pool.query(
-        "SELECT bossName, kills FROM bosskills WHERE snapshot_id = $1",
+        'SELECT "bossName", kills FROM bosskills WHERE snapshot_id = $1',
         [latestSnapshot.id]
       );
       prevBossResult.rows.forEach(row => {
-        prevBosses[row.boss_name] = row.kills;
+        prevBosses[row.bossName] = row.kills;
       });
     }
 
