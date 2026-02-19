@@ -1,5 +1,6 @@
 const searchButton = document.getElementById('searchButton');
 const searchInput = document.getElementById('searchInput');
+const playerContainer = document.getElementById('player-container');
 
 searchButton.addEventListener('click', async () => {
     const username = searchInput.value.trim();
