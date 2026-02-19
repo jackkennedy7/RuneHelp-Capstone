@@ -78,9 +78,10 @@ app.get("/api/player/:username",async (req, res) => {
 
     const skillsWithDiffs = {};
 
-    for (const [skillName, skill] of Object.entries(data.skills)) {
-        const prev = previousSkills[skillName];
-        skillsWithDiffs[skillName] = {
+    for (const skill of data.skills) {
+      const prev = previousSkills[skill.name];
+
+      skillsWithDiffs[skill.name] = {
         level: skill.level,
         xp: skill.xp,
         levelDiff: prev ? skill.level - prev.level : 0,
@@ -88,12 +89,10 @@ app.get("/api/player/:username",async (req, res) => {
       };
     }
 
-
-      // Insert skills
       const skillInsertPromises = Object.entries(data.skills).map(([skillName, skill]) =>
         pool.query(
           "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
-          [snapshotId, skill.Name, skill.level, skill.xp]
+          [snapshotId, skill.name, skill.level, skill.xp]
         )
       );
       await Promise.all(skillInsertPromises);
