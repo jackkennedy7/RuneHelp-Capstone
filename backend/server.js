@@ -98,8 +98,9 @@ app.get("/api/player/:username", async (req, res) => {
 
     // Fetch RuneScape hiscores
     const response = await fetch(
-      `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`
-    );
+  `https://secure.runescape.com/m=hiscore_oldschool/index.json?player=${encodeURIComponent(username)}`
+);
+
 
     if (!response.ok)
       return res.status(404).json({ error: "Player not found" });
