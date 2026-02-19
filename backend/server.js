@@ -113,13 +113,14 @@ app.get("/api/player/:username", async (req, res) => {
     ];
 
     const skills = {};
-    for (let i = 0; i < skillNames.length; i++) {
-      const parts = lines[i].split(",");
-      skills[skillNames[i]] = {
-        rank: Number(parts[0]) || 0,
-        level: Number(parts[2]) || 0,
-        xp: Number(parts[3]) || 0
-      };
+      for (let i = 0; i < skillNames.length; i++) {
+        const line = lines[i] || "0,0,0,0";  // default values
+        const parts = line.split(",");
+        skills[skillNames[i]] = {
+          rank: Number(parts[0]) || 0,
+          level: Number(parts[2]) || 0,
+          xp: Number(parts[3]) || 0
+        };
     }
 
     // --- Boss mapping ---
