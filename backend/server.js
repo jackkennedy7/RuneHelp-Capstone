@@ -41,13 +41,13 @@ async function returnSnapshot(res, username, snapshotId) {
 
   // Load bosses
   const bossesResult = await pool.query(
-    'SELECT "bossName", kills, rank FROM bosskills WHERE snapshot_id = $1',
+    'SELECT "boss_name", kills, rank FROM bosskills WHERE snapshot_id = $1',
     [snapshotId]
   );
 
   const bosses = {};
   bossesResult.rows.forEach(row => {
-    bosses[row.bossName] = {
+    bosses[row.boss_name] = {
       kills: row.kills,
       rank: row.rank,
       killsDiff: 0
