@@ -79,12 +79,12 @@ function renderPlayer(data) {
             row.innerHTML = `
                 <td>${capitalize(skill)}</td>
                 <td>${info.level}</td>
-                <td>${info.xp}</td>
-                <td style="color:${diffColor}">
-                    ${diff > 0 ? "+" : ""}${diff}
-                </td>
-            `;
+                <td>${Number(info.xp).toLocaleString()}</td>
 
+                <td style="color:${diffColor}">
+                    ${diff > 0 ? "+" : ""}${Number(diff).toLocaleString()}
+                </td>
+                `;
             table.appendChild(row);
         }
 
@@ -114,12 +114,12 @@ function renderPlayer(data) {
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${boss}</td>
-                <td>${info.kills}</td>
+                <td>${Number(info.kills).toLocaleString()}</td>
                 <td>${info.rank}</td>
                 <td style="color:${diffColor}">
-                    ${diff > 0 ? "+" : ""}${diff}
+                    ${diff > 0 ? "+" : ""}${Number(diff).toLocaleString()}
                 </td>
-            `;
+                `;
 
             table.appendChild(row);
         }
@@ -152,34 +152,21 @@ function normalizePlayerData(data) {
 
     const normalized = { skills: {}, bosses: {} };
 
-    // ---- Normalize Skills ----
     for (const [skill, info] of Object.entries(data.skills)) {
 
-        const level = info.level === -1 ? 1 : info.level;
-        const xp = info.xp === -1 ? 0 : info.xp;
-
         normalized.skills[skill] = {
-            level: level,
-            xp: xp.toLocaleString(),
-            xpDiff: (info.xpDiff || 0).toLocaleString()
+            level: info.level === -1 ? 1 : info.level,
+            xp: info.xp === -1 ? 0 : info.xp,
+            xpDiff: info.xpDiff || 0
         };
     }
 
-    // ---- Normalize Bosses ----
     for (const [boss, info] of Object.entries(data.bosses)) {
 
-        let rankFormatted;
-
-        if (info.rank === -1 || info.rank === "--") {
-            rankFormatted = "--";
-        } else {
-            rankFormatted = Number(info.rank).toLocaleString();
-        }
-
         normalized.bosses[boss] = {
-            kills: (info.kills === -1 ? 0 : info.kills).toLocaleString(),
-            rank: rankFormatted,
-            killsDiff: (info.killsDiff || 0).toLocaleString()
+            kills: info.kills === -1 ? 0 : info.kills,
+            rank: info.rank === -1 ? "--" : info.rank,
+            killsDiff: info.killsDiff || 0
         };
     }
 
