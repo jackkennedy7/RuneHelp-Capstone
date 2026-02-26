@@ -2,12 +2,16 @@ const searchButton = document.getElementById('searchButton');
 const searchInput = document.getElementById('searchInput');
 const playerContainer = document.getElementById('player-container');
 
-searchButton.addEventListener('click', async () => {
+searchButton.addEventListener('click', searchPlayer);
+
+async function searchPlayer() {
     const username = searchInput.value.trim();
+
     if (!username) {
         alert('Please enter a username');
         return;
     }
+
     playerContainer.innerHTML = "<p>Loading...</p>";
 
     try {
@@ -20,20 +24,27 @@ searchButton.addEventListener('click', async () => {
         }
 
         const data = await response.json();
+
         renderPlayer(data);
 
     } catch (err) {
-        playerContainer.innerHTML = `<p style="color:red;">Error loading player</p>`;
         console.error(err);
+        playerContainer.innerHTML =
+            `<p style="color:red;">Error loading player</p>`;
     }
-});
+}
 
 function renderPlayer(data) {
     data = normalizePlayerData(data);
     playerContainer.innerHTML = "";
 
+    if (!data || !data.skills) {
+        playerContainer.innerHTML = "<p>No player data found</p>";
+        return;
+    }
+
     const header = document.createElement("h2");
-    header.textContent = data.username;
+    header.textContent = data.username || "Unknown Player";
     playerContainer.appendChild(header);
 
     // 🔹 Create tab buttons
@@ -70,59 +81,23 @@ function renderPlayer(data) {
             </tr>
         `;
 
-        for (const [skill, info] of Object.entries(data.skills)) {
+    for (const [skill, info] of Object.entries(data.skills)) {
 
-            const diff = info.xpDiff;
-            const diffColor = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
+        const diff = info.xpDiff;
+        const diffColor = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
 
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${capitalize(skill)}</td>
-                <td>${info.level}</td>
-                <td>${Number(info.xp).toLocaleString()}</td>
-
-                <td style="color:${diffColor}">
-                    ${diff !== 0 ? (diff > 0 ? "+" : "") + diff.toLocaleString() : "0"}
-                </td>
-                `;
-            table.appendChild(row);
-        }
-
-        contentContainer.appendChild(table);
-    }
-
-    function renderBosses() {
-        contentContainer.innerHTML = "";
-
-        const table = document.createElement("table");
-        table.classList.add("stats-table");
-
-        table.innerHTML = `
-            <tr>
-                <th>Boss</th>
-                <th>Kills</th>
-                <th>Rank</th>
-                <th>Δ Kills</th>
-            </tr>
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${capitalize(skill)}</td>
+            <td>${info.level}</td>
+            <td>${info.xp.toLocaleString()}</td>
+            <td style="color:${diffColor}">
+                ${diff > 0 ? "+" : ""}${diff.toLocaleString()}
+            </td>
         `;
 
-        for (const [boss, info] of Object.entries(data.bosses)) {
-
-            const diff = info.killsDiff || 0;
-            const diffColor = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
-
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${boss}</td>
-                <td>${Number(info.kills).toLocaleString()}</td>
-                <td>${info.rank}</td>
-                <td style="color:${diffColor}">
-                    ${diff > 0 ? "+" : ""}${Number(diff).toLocaleString()}
-                </td>
-                `;
-
-            table.appendChild(row);
-        }
+        table.appendChild(row);
+    }
 
         contentContainer.appendChild(table);
     }
@@ -144,7 +119,7 @@ function renderPlayer(data) {
     renderSkills();
 }
 
-function capitalize(word) {
+function capitalize(word = "") {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
