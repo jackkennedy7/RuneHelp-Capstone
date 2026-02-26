@@ -114,7 +114,7 @@ function renderPlayer(data) {
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${boss}</td>
-                <td>${info.kills()}</td>
+                <td>${info.kills}</td>
                 <td>${info.rank}</td>
                 <td style="color:${diffColor}">
                     ${diff > 0 ? "+" : ""}${diff}
