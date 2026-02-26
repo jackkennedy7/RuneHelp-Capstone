@@ -68,9 +68,22 @@
       <div id="player-container"></div>
     </div>
 
-    <div class="chat">
-      <h3>Chat Bot Section</h3>
+    <div class="chat-widget">
+  <div class="chat-box" id="chatBox">
+    <div class="chat-header">
+      <span>⚔️ RuneHelper</span>
+      <button class="chat-close" id="chatClose">✕</button>
     </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg bot">Greetings adventurer! How can I help?</div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Ask me anything...">
+      <button id="chatSend">➤</button>
+    </div>
+  </div>
+  <button class="chat-bubble" id="chatBubble">⚔️</button>
+</div>
 
   </div>                           <!-- ← close content-col -->
 

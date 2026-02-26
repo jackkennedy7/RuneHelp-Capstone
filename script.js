@@ -178,3 +178,37 @@ function normalizePlayerData(data) {
 
     return normalized;
 }
+
+
+/* <------ Chat Script --------> */
+const chatBubble = document.getElementById('chatBubble');
+const chatBox = document.getElementById('chatBox');
+const chatClose = document.getElementById('chatClose');
+const chatSend = document.getElementById('chatSend');
+const chatInput = document.getElementById('chatInput');
+const chatMessages = document.getElementById('chatMessages');
+
+chatBubble.addEventListener('click', () => {
+  chatBox.classList.toggle('open');
+});
+
+chatClose.addEventListener('click', () => {
+  chatBox.classList.remove('open');
+});
+
+chatSend.addEventListener('click', sendMessage);
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  const userMsg = document.createElement('div');
+  userMsg.classList.add('chat-msg', 'user');
+  userMsg.textContent = text;
+  chatMessages.appendChild(userMsg);
+  chatInput.value = '';
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
