@@ -82,7 +82,7 @@ function renderPlayer(data) {
                 <td>${Number(info.xp).toLocaleString()}</td>
 
                 <td style="color:${diffColor}">
-                    ${diff > 0 ? "+" : ""}${Number(diff).toLocaleString()}
+                    ${diff !== 0 ? (diff > 0 ? "+" : "") + diff.toLocaleString() : "0"}
                 </td>
                 `;
             table.appendChild(row);
@@ -154,19 +154,25 @@ function normalizePlayerData(data) {
 
     for (const [skill, info] of Object.entries(data.skills)) {
 
+        const xp = Number(info.xp ?? 0);
+        const xpDiff = Number(info.xpDiff ?? 0);
+
         normalized.skills[skill] = {
-            level: info.level === -1 ? 1 : info.level,
-            xp: info.xp === -1 ? 0 : info.xp,
-            xpDiff: info.xpDiff || 0
+            level: info.level === -1 ? 1 : Number(info.level ?? 1),
+            xp: xp === -1 ? 0 : xp,
+            xpDiff: xpDiff
         };
     }
 
     for (const [boss, info] of Object.entries(data.bosses)) {
 
+        const kills = Number(info.kills ?? 0);
+        const killsDiff = Number(info.killsDiff ?? 0);
+
         normalized.bosses[boss] = {
-            kills: info.kills === -1 ? 0 : info.kills,
+            kills: kills === -1 ? 0 : kills,
             rank: info.rank === -1 ? "--" : info.rank,
-            killsDiff: info.killsDiff || 0
+            killsDiff: killsDiff
         };
     }
 
