@@ -29,6 +29,7 @@ searchButton.addEventListener('click', async () => {
 });
 
 function renderPlayer(data) {
+    data = normalizePlayerData(data);
     playerContainer.innerHTML = "";
 
     const header = document.createElement("h2");
@@ -145,4 +146,31 @@ function renderPlayer(data) {
 
 function capitalize(word) {
     return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function normalizePlayerData(data) {
+
+    const normalized = { skills: {}, bosses: {} };
+
+    // ---- Normalize Skills ----
+    for (const [skill, info] of Object.entries(data.skills)) {
+
+        normalized.skills[skill] = {
+            level: info.level === -1 ? 1 : info.level,
+            xp: info.xp === -1 ? 0 : info.xp,
+            xpDiff: info.xpDiff || 0
+        };
+    }
+
+    // ---- Normalize Bosses ----
+    for (const [boss, info] of Object.entries(data.bosses)) {
+
+        normalized.bosses[boss] = {
+            kills: info.kills === -1 ? 0 : info.kills,
+            rank: info.rank === -1 ? "--" : info.rank,
+            killsDiff: info.killsDiff || 0
+        };
+    }
+
+    return normalized;
 }
