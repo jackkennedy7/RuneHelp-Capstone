@@ -102,6 +102,46 @@ function renderPlayer(data) {
         contentContainer.appendChild(table);
     }
 
+    function renderBosses() {
+    contentContainer.innerHTML = "";
+
+    const table = document.createElement("table");
+    table.classList.add("stats-table");
+
+    table.innerHTML = `
+        <tr>
+            <th>Boss</th>
+            <th>Kills</th>
+            <th>Δ Kills</th>
+            <th>Rank</th>
+        </tr>
+    `;
+
+    for (const [boss, info] of Object.entries(data.bosses)) {
+
+        const diff = info.killsDiff ?? 0;
+        const diffColor =
+            diff > 0 ? "green" :
+            diff < 0 ? "red" :
+            "gray";
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${capitalize(boss)}</td>
+            <td>${Number(info.kills ?? 0).toLocaleString()}</td>
+            <td style="color:${diffColor}">
+                ${diff > 0 ? "+" : ""}${Number(diff).toLocaleString()}
+            </td>
+            <td>${info.rank ?? "--"}</td>
+        `;
+
+        table.appendChild(row);
+    }
+
+    contentContainer.appendChild(table);
+}
+
     // 🔹 Tab switching logic
     skillsTabBtn.addEventListener("click", () => {
         skillsTabBtn.classList.add("active-tab");
