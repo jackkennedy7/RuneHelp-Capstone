@@ -35,39 +35,110 @@ function renderPlayer(data) {
     header.textContent = data.username;
     playerContainer.appendChild(header);
 
-    const table = document.createElement("table");
-    table.classList.add("stats-table");
+    // 🔹 Create tab buttons
+    const tabContainer = document.createElement("div");
+    tabContainer.classList.add("tab-container");
 
-    table.innerHTML = `
-        <tr>
-            <th>Skill</th>
-            <th>Level</th>
-            <th>XP</th>
-            <th>Δ XP</th>
-        </tr>
-    `;
+    const skillsTabBtn = document.createElement("button");
+    skillsTabBtn.textContent = "Skills";
+    skillsTabBtn.classList.add("active-tab");
 
-    for (const [skill, info] of Object.entries(data.skills)) {
+    const bossesTabBtn = document.createElement("button");
+    bossesTabBtn.textContent = "Bossing";
 
-        const diff = info.xpDiff;
-        const diffColor = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
+    tabContainer.appendChild(skillsTabBtn);
+    tabContainer.appendChild(bossesTabBtn);
+    playerContainer.appendChild(tabContainer);
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${capitalize(skill)}</td>
-            <td>${info.level}</td>
-            <td>${info.xp.toLocaleString()}</td>
-            <td style="color:${diffColor}">
-                ${diff > 0 ? "+" : ""}${diff.toLocaleString()}
-            </td>
+    // 🔹 Create content container
+    const contentContainer = document.createElement("div");
+    playerContainer.appendChild(contentContainer);
+
+    function renderSkills() {
+        contentContainer.innerHTML = "";
+
+        const table = document.createElement("table");
+        table.classList.add("stats-table");
+
+        table.innerHTML = `
+            <tr>
+                <th>Skill</th>
+                <th>Level</th>
+                <th>XP</th>
+                <th>Δ XP</th>
+            </tr>
         `;
 
-        table.appendChild(row);
+        for (const [skill, info] of Object.entries(data.skills)) {
+
+            const diff = info.xpDiff;
+            const diffColor = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${capitalize(skill)}</td>
+                <td>${info.level}</td>
+                <td>${info.xp.toLocaleString()}</td>
+                <td style="color:${diffColor}">
+                    ${diff > 0 ? "+" : ""}${diff.toLocaleString()}
+                </td>
+            `;
+
+            table.appendChild(row);
+        }
+
+        contentContainer.appendChild(table);
     }
 
-    playerContainer.appendChild(table);
-}
+    function renderBosses() {
+        contentContainer.innerHTML = "";
 
-function capitalize(word) {
-    return word.charAt(0).toUpperCase() + word.slice(1);
+        const table = document.createElement("table");
+        table.classList.add("stats-table");
+
+        table.innerHTML = `
+            <tr>
+                <th>Boss</th>
+                <th>Kills</th>
+                <th>Rank</th>
+                <th>Δ Kills</th>
+            </tr>
+        `;
+
+        for (const [boss, info] of Object.entries(data.bosses)) {
+
+            const diff = info.killsDiff || 0;
+            const diffColor = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${boss}</td>
+                <td>${info.kills.toLocaleString()}</td>
+                <td>${info.rank}</td>
+                <td style="color:${diffColor}">
+                    ${diff > 0 ? "+" : ""}${diff.toLocaleString()}
+                </td>
+            `;
+
+            table.appendChild(row);
+        }
+
+        contentContainer.appendChild(table);
+    }
+
+    // 🔹 Tab switching logic
+    skillsTabBtn.addEventListener("click", () => {
+        skillsTabBtn.classList.add("active-tab");
+        bossesTabBtn.classList.remove("active-tab");
+        renderSkills();
+    });
+
+    bossesTabBtn.addEventListener("click", () => {
+        bossesTabBtn.classList.add("active-tab");
+        skillsTabBtn.classList.remove("active-tab");
+        renderBosses();
+    });
+
+    // Default tab
+    renderSkills();
 }
