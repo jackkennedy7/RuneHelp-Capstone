@@ -22,10 +22,147 @@ app.get("/", (req, res) => {
     res.send("RuneHelp backend is running");
 });
 
-async function returnSnapshot(res, username, snapshotId) {
-  // Load skills
+function minutesSince(date) {
+  return (Date.now() - new Date(date)) / (1000 * 60);
+}
+
+function mapByKey(rows, key) {
+  const map = {};
+  rows.forEach(row => {
+    map[row[key]] = row;
+  });
+  return map;
+}
+
+function computeSkillDiffs(current, previous = {}) {
+  const result = {};
+  let changed = false;
+
+  for (const [name, skill] of Object.entries(current)) {
+    const prev = previous[name] || { level: 0, xp: 0 };
+
+    const levelDiff = skill.level - prev.level;
+    const xpDiff = skill.xp - prev.xp;
+
+    if (levelDiff !== 0 || xpDiff !== 0) changed = true;
+
+    result[name] = { ...skill, levelDiff, xpDiff };
+  }
+
+  return { result, changed };
+}
+
+function computeBossDiffs(current, previous = {}) {
+  const result = {};
+  let changed = false;
+
+  for (const [name, boss] of Object.entries(current)) {
+    const prevKills = previous[name] || 0;
+    const killsDiff = boss.kills - prevKills;
+
+    if (killsDiff !== 0) changed = true;
+
+    result[name] = { ...boss, killsDiff };
+  }
+
+  return { result, changed };
+}
+
+async function getOrCreatePlayer(username) {
+  const result = await pool.query(
+    `INSERT INTO players (username)
+     VALUES ($1)
+     ON CONFLICT (username)
+     DO UPDATE SET username = EXCLUDED.username
+     RETURNING id`,
+    [username]
+  );
+
+  return result.rows[0].id;
+}
+
+async function getRecentSnapshots(playerId, limit = 10) {
+  const result = await pool.query(
+    `SELECT id, created_at
+     FROM snapshots
+     WHERE player_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [playerId, limit]
+  );
+
+  return result.rows;
+}
+
+async function snapshotsAreIdentical(idA, idB) {
+  const [aSkills, bSkills] = await Promise.all([
+    pool.query(
+      `SELECT skill_name, level, xp
+       FROM skills
+       WHERE snapshot_id = $1`,
+      [idA]
+    ),
+    pool.query(
+      `SELECT skill_name, level, xp
+       FROM skills
+       WHERE snapshot_id = $1`,
+      [idB]
+    )
+  ]);
+
+  if (aSkills.rowCount !== bSkills.rowCount) return false;
+
+  const mapB = {};
+  bSkills.rows.forEach(r => {
+    mapB[r.skill_name] = r;
+  });
+
+  for (const row of aSkills.rows) {
+    const match = mapB[row.skill_name];
+    if (!match) return false;
+    if (row.level !== match.level || row.xp !== match.xp) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function findLastDifferentSnapshot(playerId) {
+  const snapshots = await getRecentSnapshots(playerId, 10);
+
+  if (snapshots.length < 2) return null;
+
+  const latest = snapshots[0];
+
+  for (let i = 1; i < snapshots.length; i++) {
+    const candidate = snapshots[i];
+
+    const identical = await snapshotsAreIdentical(
+      latest.id,
+      candidate.id
+    );
+
+    if (!identical) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+async function loadSnapshotData(snapshotId) {
   const skillsResult = await pool.query(
-    "SELECT skill_name, level, xp FROM skills WHERE snapshot_id = $1",
+    `SELECT skill_name, level, xp
+     FROM skills
+     WHERE snapshot_id = $1`,
+    [snapshotId]
+  );
+
+  const bossesResult = await pool.query(
+    `SELECT boss_name, kills, rank
+     FROM bosskills
+     WHERE snapshot_id = $1`,
     [snapshotId]
   );
 
@@ -33,187 +170,148 @@ async function returnSnapshot(res, username, snapshotId) {
   skillsResult.rows.forEach(row => {
     skills[row.skill_name] = {
       level: row.level,
-      xp: row.xp,
-      levelDiff: 0,
-      xpDiff: 0
+      xp: row.xp
     };
   });
-
-  // Load bosses
-  const bossesResult = await pool.query(
-    'SELECT "boss_name", kills, rank FROM bosskills WHERE snapshot_id = $1',
-    [snapshotId]
-  );
 
   const bosses = {};
   bossesResult.rows.forEach(row => {
     bosses[row.boss_name] = {
       kills: row.kills,
-      rank: row.rank,
-      killsDiff: 0
+      rank: row.rank
     };
   });
 
-  return res.json({
-    username,
-    skills,
-    bosses,
-    cached: true
-  });
+  return { skills, bosses };
+}
+
+async function insertSnapshot(playerId, skills, bosses) {
+  const snapshotResult = await pool.query(
+    `INSERT INTO snapshots (player_id)
+     VALUES ($1)
+     RETURNING id`,
+    [playerId]
+  );
+
+  const snapshotId = snapshotResult.rows[0].id;
+
+  await Promise.all([
+    ...Object.entries(skills).map(([name, skill]) =>
+      pool.query(
+        `INSERT INTO skills (snapshot_id, skill_name, level, xp)
+         VALUES ($1, $2, $3, $4)`,
+        [snapshotId, name, skill.level, skill.xp]
+      )
+    ),
+    ...Object.entries(bosses).map(([name, boss]) =>
+      pool.query(
+        `INSERT INTO bosskills (snapshot_id, boss_name, kills, rank)
+         VALUES ($1, $2, $3, $4)`,
+        [snapshotId, name, boss.kills, boss.rank]
+      )
+    )
+  ]);
+
+  return snapshotId;
+}
+
+async function fetchHiscores(username) {
+  const response = await fetch(
+    `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Player not found");
+  }
+
+  return response.json();
+}
+
+function parseSkills(data) {
+  const skills = {};
+  for (const skill of data.skills) {
+    skills[skill.name] = {
+      rank: skill.rank,
+      level: skill.level,
+      xp: skill.xp
+    };
+  }
+  return skills;
+}
+
+function parseBosses(data, bossNames) {
+  const activitiesMap = Object.fromEntries(
+    data.activities.map(a => [a.name, a])
+  );
+
+  const bosses = {};
+
+  for (const name of bossNames) {
+    const activity = activitiesMap[name] || { rank: -1, score: 0 };
+
+    bosses[name] = {
+      rank: activity.rank,
+      kills: activity.score
+    };
+  }
+
+  return bosses;
 }
 
 app.get("/api/player/:username", async (req, res) => {
   const username = req.params.username.trim();
 
   try {
-    // 1️⃣ Ensure player exists
-    const playerResult = await pool.query(
-      `INSERT INTO players (username)
-       VALUES ($1)
-       ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username
-       RETURNING id`,
-      [username]
-    );
-    const playerId = playerResult.rows[0].id;
+    const playerId = await getOrCreatePlayer(username);
 
-    // 2️⃣ Check latest snapshot for caching
-    const latestSnapshotResult = await pool.query(
-      `SELECT id, created_at
-       FROM snapshots
-       WHERE player_id = $1
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [playerId]
-    );
-    const latestSnapshot = latestSnapshotResult.rows[0] || null;
+    const snapshots = await getRecentSnapshots(playerId, 1);
+    const latest = snapshots[0] || null;
 
-    if (latestSnapshot) {
-      const diffMinutes = (Date.now() - new Date(latestSnapshot.created_at)) / (1000 * 60);
-      if (diffMinutes < 5) {
-        return await returnSnapshot(res, username, latestSnapshot.id);
-      }
+    let previous = null;
+
+    if (latest) {
+      previous = await findLastDifferentSnapshot(playerId);
     }
 
-    // 3️⃣ Fetch hiscores JSON
-    const response = await fetch(
-      `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`
-    );
-    if (!response.ok) return res.status(404).json({ error: "Player not found" });
+    // Fetch new hiscores
+    const data = await fetchHiscores(username);
 
-    const data = await response.json();
+    const skills = parseSkills(data);
+    const bosses = parseBosses(data, bossNames);
 
-    // --- 4️⃣ Parse skills ---
-    const skills = {};
-    for (const skill of data.skills) {
-      skills[skill.name] = {
-        rank: skill.rank,
-        level: skill.level,
-        xp: skill.xp
-      };
-    }
-
-    // --- 5️⃣ Parse bosses ---
-    const bossNames = [
-      "Abyssal Sire","Alchemical Hydra","Barrows Chests","Bryophyta","Callisto",
-      "Cerberus","Chambers of Xeric","Chambers of Xeric Challenge Mode","Chaos Elemental","Chaos Fanatic",
-      "Commander Zilyana","Corporeal Beast","Crazy Archaeologist","Dagannoth Prime","Dagannoth Rex",
-      "Dagannoth Supreme","Deranged Archaeologist","General Graardor","Giant Mole","Grotesque Guardians",
-      "Hespori","Kalphite King","King Black Dragon","Kraken","Kree'Arra","K'ril Tsutsaroth",
-      "Mimic","Nightmare","Obor","Phosani's Nightmare","Sarachnis","Scorpia","Skotizo","The Gauntlet",
-      "The Corrupted Gauntlet","Theatre of Blood","Theatre of Blood Hard Mode","Thermonuclear Smoke Devil",
-      "TzKal-Zuk","TzTok-Jad","Venenatis","Vet'ion","Vorkath","Wintertodt","Zalcano","Zulrah"
-    ];
-
-    const activitiesMap = Object.fromEntries(
-      data.activities.map(a => [a.name, a])
-    );
-
-    const bosses = {};
-    for (const name of bossNames) {
-      const activity = activitiesMap[name] || { rank: -1, score: 0 };
-      bosses[name] = {
-        rank: activity.rank,
-        kills: activity.score
-      };
-    }
-
-    // --- 6️⃣ Load previous snapshot for deltas ---
     let prevSkills = {};
     let prevBosses = {};
-    if (latestSnapshot) {
-      const prevSkillsResult = await pool.query(
-        "SELECT skill_name, level, xp FROM skills WHERE snapshot_id = $1",
-        [latestSnapshot.id]
-      );
-      prevSkillsResult.rows.forEach(row => {
-        prevSkills[row.skill_name] = { level: row.level, xp: row.xp };
+
+    if (latest) {
+      const prevData = await loadSnapshotData(latest.id);
+      prevSkills = prevData.skills;
+      prevBosses = prevData.bosses;
+    }
+
+    const { result: skillsWithDiffs, changed: skillChanged } =
+      computeSkillDiffs(skills, prevSkills);
+
+    const { result: bossesWithDiffs, changed: bossChanged } =
+      computeBossDiffs(bosses, prevBosses);
+
+    const hasChanges = skillChanged || bossChanged;
+
+    if (!hasChanges && latest) {
+      return res.json({
+        username,
+        skills: skillsWithDiffs,
+        bosses: bossesWithDiffs,
+        cached: true
       });
-
-      const prevBossResult = await pool.query(
-        'SELECT boss_name, kills FROM bosskills WHERE snapshot_id = $1',
-        [latestSnapshot.id]
-      );
-      prevBossResult.rows.forEach(row => {
-        prevBosses[row.boss_name] = row.kills;
-      });
     }
 
-    // --- 7️⃣ Compute deltas ---
-    const skillsWithDiffs = {};
-    let hasChanges = false;
+    await insertSnapshot(playerId, skills, bosses);
 
-    for (const [name, skill] of Object.entries(skills)) {
-      const prev = prevSkills[name] || { level: 0, xp: 0 };
-      const levelDiff = skill.level - prev.level;
-      const xpDiff = skill.xp - prev.xp;
-      skillsWithDiffs[name] = { ...skill, levelDiff, xpDiff };
-      if (levelDiff !== 0 || xpDiff !== 0) hasChanges = true;
-    }
-
-    const bossesWithDiffs = {};
-    for (const [name, boss] of Object.entries(bosses)) {
-      const prevKills = prevBosses[name] || 0;
-      const killsDiff = boss.kills - prevKills;
-      bossesWithDiffs[name] = { ...boss, killsDiff };
-      if (killsDiff !== 0) hasChanges = true;
-    }
-
-    // --- 8️⃣ Skip snapshot insert if nothing changed ---
-    if (!hasChanges && latestSnapshot) {
-      return await returnSnapshot(res, username, latestSnapshot.id);
-    }
-
-    // --- 9️⃣ Insert new snapshot ---
-    const snapshotResult = await pool.query(
-      "INSERT INTO snapshots (player_id) VALUES ($1) RETURNING id",
-      [playerId]
-    );
-    const snapshotId = snapshotResult.rows[0].id;
-
-    // Insert skills
-    const skillPromises = Object.entries(skills).map(([name, skill]) =>
-      pool.query(
-        "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
-        [snapshotId, name, skill.level, skill.xp]
-      )
-    );
-    await Promise.all(skillPromises);
-
-    // Insert bosses
-    const bossPromises = Object.entries(bosses).map(([name, boss]) =>
-      pool.query(
-        "INSERT INTO bosskills (snapshot_id, boss_name, kills, rank) VALUES ($1, $2, $3, $4)",
-        [snapshotId, name, boss.kills, boss.rank]
-      )
-    );
-    await Promise.all(bossPromises);
-
-    // --- 10️⃣ Return response ---
     res.json({
       username,
       skills: skillsWithDiffs,
       bosses: bossesWithDiffs,
-      hasPreviousSnapshot: !!latestSnapshot,
+      hasPreviousSnapshot: !!latest,
       cached: false
     });
 
@@ -222,8 +320,6 @@ app.get("/api/player/:username", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
