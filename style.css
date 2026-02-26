@@ -15,6 +15,10 @@
 {
   padding: 10px;
 }
+#a2
+{
+  padding: 10px;
+}
 
 .user_search
 {
@@ -52,39 +56,102 @@ button
   font-family: rsFont;
   src: url("./font/RuneScape-Bold-12.otf") format("opentype");
 }
-body
-{
+
+/* Replace your inline body background style with this in style.css: */
+body {
+  background-color: #1a1a1b;
+  background-image: none;
   font-family: rsFont;
   font-weight: bold;
+  margin: 0;
+  min-height: 100vh;
 }
-h1
-{
+
+/* Add these new header styles: */
+.site-header {
   display: flex;
-  width: auto;
-  margin:auto;
-  padding: 10px;
-  border: 2px solid #8b4513;
-  border-radius: 8px;
-  background-color: rgba(255, 255, 245, 0.9);
-  
+  align-items: center;
+  justify-content: space-between;
+  background-color: #1c2b39;
+  border-bottom: 3px solid #8b4513;
+  padding: 10px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
-.page-wrapper 
-{
-    display: flex;
-    gap: 20px;
-    padding: 20px;
+
+.site-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: rsFont;
+  font-size: 1.6rem;
+  color: #f6f0d8;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 4px #000;
 }
+
+.logo-icon {
+  font-size: 1.8rem;
+}
+
+.logo-text strong {
+  color: #e8c96a; /* gold accent like the wiki */
+}
+
+.site-nav {
+  display: flex;
+  gap: 20px;
+}
+
+.site-nav a {
+  color: #c8bfa8;
+  text-decoration: none;
+  font-family: rsFont;
+  font-size: 0.95rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.site-nav a:hover {
+  background-color: rgba(255,255,255,0.08);
+  color: #f6f0d8;
+}
+.page-wrapper {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  align-items: stretch;
+  min-height: calc(100vh - 50px); /* stretch to full page height */
+}
+.left-panel {
+  width: 220px;        /* wider so text doesn't wrap so aggressively */
+  flex-shrink: 0;
+  background-color: #1c2b39;
+  border-right: 3px solid #8b4513;
+  padding: 20px;
+  align-self: stretch; /* full height */
+}
+.content-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  min-width: 0;
+}
+
 .news 
 {
-  width: 20%;
+  width: 100%;
   background-color: rgba(255, 255, 245, 0.9);
-  padding: 20px;
+  padding: 5px;
   border: 2px solid #8b4513;
   border-radius: 8px;
   height: fit-content;
-  margin-left: 15px;
-  margin-right: auto;
-  margin-top: 7%;
+  
+  
 }
 
 .news_content
@@ -97,6 +164,7 @@ h1
   max-height: 500px;
   
 }
+
 .news_content h2
 {
   background-color: rgba(240, 245, 200, 0.9);
