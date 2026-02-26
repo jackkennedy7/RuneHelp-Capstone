@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<link rel="stylesheet" href="style.css">
-<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
-<title>RuneHelp</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+    <title>RuneHelp</title>
 </head>
+    
 <body>
-
-<!-- OSRS Wiki-style header bar -->
+    
+    <style>
+    body 
+    {
+        background-image: url('./images/paperback.png');
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-size: 100% 100%;
+    }
+    </style> 
+    
+    <!-- OSRS Wiki-style header bar -->
 <div class="site-header">
   <div class="site-logo">
     <span class="logo-icon">⚔️</span>
@@ -20,31 +31,32 @@
     <a href="#">Chat</a>
   </nav>
 </div>
-
-<div class="page-wrapper">
+    
+    <div class="page-wrapper">
 
   <div class="left-panel">
     <div class="news">
       <section class="news_content">
         <h2>Latest News</h2>
-        <div class="article">
-          <img src="https://oldschool.runescape.wiki/images/Main_page_-_Music_System_Improvements_%26_Deadman_Tweaks.png?34158" alt="Music Update">
+        <div id="a1">
+          <img src="https://oldschool.runescape.wiki/images/Main_page_-_Music_System_Improvements_%26_Deadman_Tweaks.png?34158" alt="Leagues VI">
           <h4>Music System Improvements &amp; Deadman Tweaks</h4>
           <a href="https://oldschool.runescape.wiki/w/Update:Music_System_Improvements_%26_Deadman_Tweaks" target="_blank">Read More →</a>
         </div>
-        <div class="article">
-          <img src="https://oldschool.runescape.wiki/images/Main_page_-_25th_Anniversary_Event-_25_Years%2C_25_Mementos%21.png?6be40" alt="Anniversary Event">
+        <div id="a1">
+          <img src="https://oldschool.runescape.wiki/images/Main_page_-_25th_Anniversary_Event-_25_Years%2C_25_Mementos%21.png?6be40" alt="Leagues VI">
           <h4>25th Anniversary Event!</h4>
           <a href="https://oldschool.runescape.wiki/w/25th_Anniversary_event" target="_blank">Read More →</a>
         </div>
-        <div class="article">
+        <div>
           <h4>Article Three</h4>
         </div>
       </section>
     </div>
   </div>
 
-  <div class="content-col">
+  <div class="content-col">       <!-- ← wrap these two together -->
+
     <div class="main-col">
       <div class="user_search">
         <section class="search">
@@ -55,12 +67,8 @@
       </div>
       <div id="player-container"></div>
     </div>
-  </div>
 
-</div>
-
-<!-- Chat widget: fixed, floats over everything -->
-<div class="chat-widget">
+    <div class="chat-widget">
   <div class="chat-box" id="chatBox">
     <div class="chat-header">
       <span>⚔️ RuneHelper</span>
@@ -77,6 +85,15 @@
   <button class="chat-bubble" id="chatBubble">⚔️</button>
 </div>
 
-<script src="script.js"></script>
+  </div>                           <!-- ← close content-col -->
+
+</div>
+    
+    <script src="script.js"></script>
+
+</body>
+
+    <script src="script.js"></script>
+
 </body>
 </html>
