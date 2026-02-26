@@ -275,38 +275,77 @@ app.get("/api/player/:username", async (req, res) => {
   try {
     const playerId = await getOrCreatePlayer(username);
 
+    // 1️⃣ Load snapshot history
     const snapshots = await getRecentSnapshots(playerId, 10);
     const latest = snapshots[0] || null;
 
-    let previous = null;
+    let previousDistinct = null;
 
     if (latest) {
-      previous = await findLastDifferentSnapshot(playerId);
+      for (let i = 1; i < snapshots.length; i++) {
+        const identical = await snapshotsAreIdentical(
+          latest.id,
+          snapshots[i].id
+        );
+
+        if (!identical) {
+          previousDistinct = snapshots[i];
+          break;
+        }
+      }
     }
 
-    // Fetch new hiscores
+    // 2️⃣ Cached path (under 5 minutes)
+    if (latest && minutesSince(latest.created_at) < 5) {
+      const currentData = await loadSnapshotData(latest.id);
+
+      let prevSkills = {};
+      let prevBosses = {};
+
+      if (previousDistinct) {
+        const prevData = await loadSnapshotData(previousDistinct.id);
+        prevSkills = prevData.skills;
+        prevBosses = prevData.bosses;
+      }
+
+      const { result: skills } =
+        computeSkillDiffs(currentData.skills, prevSkills);
+
+      const { result: bosses } =
+        computeBossDiffs(currentData.bosses, prevBosses);
+
+      return res.json({
+        username,
+        skills,
+        bosses,
+        cached: true
+      });
+    }
+
+    // 3️⃣ Fetch live hiscores
     const data = await fetchHiscores(username);
 
-    const skills = parseSkills(data);
-    const bosses = parseBosses(data, bossNames);
+    const currentSkills = parseSkills(data);
+    const currentBosses = parseBosses(data, bossNames);
 
     let prevSkills = {};
     let prevBosses = {};
 
     if (latest) {
-      const prevData = await loadSnapshotData(previous.id);
-      prevSkills = prevData.skills;
-      prevBosses = prevData.bosses;
+      const latestData = await loadSnapshotData(latest.id);
+      prevSkills = latestData.skills;
+      prevBosses = latestData.bosses;
     }
 
     const { result: skillsWithDiffs, changed: skillChanged } =
-      computeSkillDiffs(skills, prevSkills);
+      computeSkillDiffs(currentSkills, prevSkills);
 
     const { result: bossesWithDiffs, changed: bossChanged } =
-      computeBossDiffs(bosses, prevBosses);
+      computeBossDiffs(currentBosses, prevBosses);
 
     const hasChanges = skillChanged || bossChanged;
 
+    // 4️⃣ If no changes → behave like cached
     if (!hasChanges && latest) {
       return res.json({
         username,
@@ -316,9 +355,10 @@ app.get("/api/player/:username", async (req, res) => {
       });
     }
 
-    await insertSnapshot(playerId, skills, bosses);
+    // 5️⃣ Insert new snapshot
+    await insertSnapshot(playerId, currentSkills, currentBosses);
 
-    res.json({
+    return res.json({
       username,
       skills: skillsWithDiffs,
       bosses: bossesWithDiffs,
