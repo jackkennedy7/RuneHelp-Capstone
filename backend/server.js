@@ -275,7 +275,7 @@ app.get("/api/player/:username", async (req, res) => {
   try {
     const playerId = await getOrCreatePlayer(username);
 
-    const snapshots = await getRecentSnapshots(playerId, 1);
+    const snapshots = await getRecentSnapshots(playerId, 10);
     const latest = snapshots[0] || null;
 
     let previous = null;
@@ -294,7 +294,7 @@ app.get("/api/player/:username", async (req, res) => {
     let prevBosses = {};
 
     if (latest) {
-      const prevData = await loadSnapshotData(latest.id);
+      const prevData = await loadSnapshotData(previous.id);
       prevSkills = prevData.skills;
       prevBosses = prevData.bosses;
     }
