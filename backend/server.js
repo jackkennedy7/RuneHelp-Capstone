@@ -275,7 +275,6 @@ app.get("/api/player/:username", async (req, res) => {
   try {
     const playerId = await getOrCreatePlayer(username);
 
-    // 1️⃣ Load snapshot history
     const snapshots = await getRecentSnapshots(playerId, 10);
     const latest = snapshots[0] || null;
 
@@ -295,7 +294,7 @@ app.get("/api/player/:username", async (req, res) => {
       }
     }
 
-    // 2️⃣ Cached path (under 5 minutes)
+    // ✅ Cached path (5 min rule)
     if (latest && minutesSince(latest.created_at) < 5) {
       const currentData = await loadSnapshotData(latest.id);
 
@@ -308,21 +307,21 @@ app.get("/api/player/:username", async (req, res) => {
         prevBosses = prevData.bosses;
       }
 
-      const { result: skills } =
+      const { result: skillDiffs } =
         computeSkillDiffs(currentData.skills, prevSkills);
 
-      const { result: bosses } =
+      const { result: bossDiffs } =
         computeBossDiffs(currentData.bosses, prevBosses);
 
       return res.json({
         username,
-        skills,
-        bosses,
+        skills: skillDiffs,
+        bosses: bossDiffs,
         cached: true
       });
     }
 
-    // 3️⃣ Fetch live hiscores
+    // ✅ Fetch live hiscores
     const data = await fetchHiscores(username);
 
     const currentSkills = parseSkills(data);
@@ -345,20 +344,12 @@ app.get("/api/player/:username", async (req, res) => {
 
     const hasChanges = skillChanged || bossChanged;
 
-    // 4️⃣ If no changes → behave like cached
-    if (!hasChanges && latest) {
-      return res.json({
-        username,
-        skills: skillsWithDiffs,
-        bosses: bossesWithDiffs,
-        cached: true
-      });
+    // ✅ Insert snapshot only once
+    if (hasChanges || !latest) {
+      await insertSnapshot(playerId, currentSkills, currentBosses);
     }
 
-    // 5️⃣ Insert new snapshot
-    await insertSnapshot(playerId, currentSkills, currentBosses);
-
-    return res.json({
+    res.json({
       username,
       skills: skillsWithDiffs,
       bosses: bossesWithDiffs,
