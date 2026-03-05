@@ -1,47 +1,101 @@
 require("dotenv").config();
 
-const express = require('express');
-const cors = require('cors');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-
-app.use(express.json());
-app.use(cors());
+const express = require("express");
+const cors = require("cors");
+const fetch = (...args) => import("node-fetch").then(({default: fetch}) => fetch(...args));
 
 const { Pool } = require("pg");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const PORT = process.env.PORT || 3000;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
+const FIVE_MINUTES = 5 * 60 * 1000;
+
 app.get("/", (req, res) => {
-    res.send("RuneHelp backend is running");
+  res.send("RuneHelp backend running");
 });
 
-async function insertSnapshot(playerId, skills, bosses) {
+async function getPlayerId(username) {
 
   const result = await pool.query(
-    `INSERT INTO snapshots(player_id, skills, bosses)
-     VALUES ($1,$2,$3)
+    `INSERT INTO players(username)
+     VALUES($1)
+     ON CONFLICT(username)
+     DO UPDATE SET username = EXCLUDED.username
      RETURNING id`,
-    [playerId, skills, bosses]
+    [username]
   );
 
   return result.rows[0].id;
 }
 
-async function loadSnapshot(snapshotId) {
+async function getLatestSnapshot(playerId) {
 
   const result = await pool.query(
-    "SELECT skills, bosses FROM snapshots WHERE id=$1",
-    [snapshotId]
+    `SELECT id, data, created_at
+     FROM snapshots
+     WHERE player_id=$1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [playerId]
   );
 
-  return result.rows[0];
+  return result.rows[0] || null;
+}
+
+async function insertSnapshot(playerId, data) {
+
+  const result = await pool.query(
+    `INSERT INTO snapshots(player_id, data)
+     VALUES($1,$2)
+     RETURNING id`,
+    [playerId, data]
+  );
+
+  return result.rows[0].id;
+}
+
+function computeDiffs(current, previous) {
+
+  const skills = {};
+  const bosses = {};
+
+  const prevSkills = previous?.skills || [];
+  const prevActs = previous?.activities || [];
+
+  current.skills.forEach((s, i) => {
+
+    const prev = prevSkills[i] || {};
+
+    skills[i] = {
+      level: s.level,
+      xp: s.xp,
+      xpDiff: s.xp - (prev.xp || 0)
+    };
+
+  });
+
+  current.activities.forEach((a, i) => {
+
+    const prev = prevActs[i] || {};
+
+    bosses[a.name] = {
+      rank: a.rank,
+      kills: a.score,
+      killsDiff: a.score - (prev.score || 0)
+    };
+
+  });
+
+  return { skills, bosses };
 }
 
 app.get("/api/player/:username", async (req, res) => {
@@ -50,73 +104,32 @@ app.get("/api/player/:username", async (req, res) => {
 
     const username = req.params.username.trim();
 
-    const playerResult = await pool.query(
-      `INSERT INTO players(username)
-       VALUES($1)
-       ON CONFLICT(username) DO UPDATE SET username=EXCLUDED.username
-       RETURNING id`,
-      [username]
-    );
+    const playerId = await getPlayerId(username);
 
-    const playerId = playerResult.rows[0].id;
+    const latest = await getLatestSnapshot(playerId);
 
-    // Latest snapshot
-    const latestSnapshotResult = await pool.query(
-      `SELECT id, created_at
-       FROM snapshots
-       WHERE player_id=$1
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [playerId]
-    );
+    if (latest && (Date.now() - new Date(latest.created_at)) < FIVE_MINUTES) {
 
-    const latestSnapshot = latestSnapshotResult.rows[0] || null;
-
-    const FIVE_MINUTES = 5 * 60 * 1000;
-
-    // Cache path
-    if (latestSnapshot &&
-        (Date.now() - new Date(latestSnapshot.created_at)) < FIVE_MINUTES) {
-
-      const snapshotData = await loadSnapshot(latestSnapshot.id);
-
-      const prevSnapshotResult = await pool.query(
-        `SELECT id FROM snapshots
+      const prev = await pool.query(
+        `SELECT data
+         FROM snapshots
          WHERE player_id=$1 AND id < $2
          ORDER BY created_at DESC
          LIMIT 1`,
-        [playerId, latestSnapshot.id]
+        [playerId, latest.id]
       );
 
-      const prevId = prevSnapshotResult.rows[0]?.id;
+      const previousData = prev.rows[0]?.data;
 
-      let prevData = { skills: {}, bosses: {} };
-
-      if (prevId) {
-        prevData = await loadSnapshot(prevId);
-      }
-
-      const skills = computeDiffs(
-        snapshotData.skills,
-        prevData.skills,
-        "xp"
-      );
-
-      const bosses = computeDiffs(
-        snapshotData.bosses,
-        prevData.bosses,
-        "kills"
-      );
+      const diffs = computeDiffs(latest.data, previousData);
 
       return res.json({
         username,
-        skills,
-        bosses,
+        ...diffs,
         cached: true
       });
     }
 
-    // Fetch live hiscores
     const response = await fetch(
       `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`
     );
@@ -126,46 +139,36 @@ app.get("/api/player/:username", async (req, res) => {
 
     const data = await response.json();
 
-    const skillNames = [
-      "Overall","Attack","Defence","Strength","Hitpoints","Ranged","Prayer","Magic","Cooking",
-      "Woodcutting","Fletching","Fishing","Firemaking","Crafting","Smithing","Mining","Herblore",
-      "Agility","Thieving","Slayer","Farming","Runecrafting","Hunter","Construction"
-    ];
+    const snapshotId = await insertSnapshot(playerId, data);
 
-    const skills = {};
-    data.skills.forEach((s, i) => {
-      skills[skillNames[i]] = {
-        level: s.level ?? 0,
-        xp: s.xp ?? 0
-      };
-    });
+    const prev = await pool.query(
+      `SELECT data
+       FROM snapshots
+       WHERE player_id=$1 AND id < $2
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [playerId, snapshotId]
+    );
 
-    const bosses = {};
+    const previousData = prev.rows[0]?.data;
 
-    (data.activities || []).forEach(a => {
-      bosses[a.name] = {
-        rank: a.rank ?? -1,
-        kills: a.score ?? 0
-      };
-    });
-
-    const snapshotId = await insertSnapshot(playerId, skills, bosses);
-
-    const snapshotData = await loadSnapshot(snapshotId);
+    const diffs = computeDiffs(data, previousData);
 
     res.json({
       username,
-      skills: snapshotData.skills,
-      bosses: snapshotData.bosses,
+      ...diffs,
       cached: false
     });
 
   } catch (err) {
+
     console.error(err);
     res.status(500).json({ error: "Server error" });
+
   }
+
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
