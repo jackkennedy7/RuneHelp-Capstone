@@ -22,83 +22,26 @@ app.get("/", (req, res) => {
     res.send("RuneHelp backend is running");
 });
 
-async function loadSnapshot(snapshotId) {
-
-  const skillsResult = await pool.query(
-    "SELECT skill_name, level, xp FROM skills WHERE snapshot_id=$1",
-    [snapshotId]
-  );
-
-  const bossesResult = await pool.query(
-    "SELECT boss_name, kills, rank FROM bosskills WHERE snapshot_id=$1",
-    [snapshotId]
-  );
-
-  const skills = {};
-  skillsResult.rows.forEach(row => {
-    skills[row.skill_name] = {
-      level: row.level,
-      xp: row.xp
-    };
-  });
-
-  const bosses = {};
-  bossesResult.rows.forEach(row => {
-    bosses[row.boss_name] = {
-      kills: row.kills,
-      rank: row.rank
-    };
-  });
-
-  return { skills, bosses };
-}
-
-function computeDiffs(current, previous, numericField) {
-
-  const result = {};
-
-  for (const [name, cur] of Object.entries(current)) {
-
-    const prev = previous[name] || {};
-
-    const base = Number(cur[numericField] ?? 0);
-    const prevValue = Number(prev[numericField] ?? 0);
-
-    result[name] = {
-      ...cur,
-      [`${numericField}Diff`]: base - prevValue
-    };
-  }
-
-  return result;
-}
-
 async function insertSnapshot(playerId, skills, bosses) {
 
-  const snapshotResult = await pool.query(
-    "INSERT INTO snapshots(player_id) VALUES($1) RETURNING id",
-    [playerId]
+  const result = await pool.query(
+    `INSERT INTO snapshots(player_id, skills, bosses)
+     VALUES ($1,$2,$3)
+     RETURNING id`,
+    [playerId, skills, bosses]
   );
 
-  const snapshotId = snapshotResult.rows[0].id;
+  return result.rows[0].id;
+}
 
-  const skillPromises = Object.entries(skills).map(([name, skill]) =>
-    pool.query(
-      "INSERT INTO skills(snapshot_id, skill_name, level, xp) VALUES($1,$2,$3,$4)",
-      [snapshotId, name, skill.level, skill.xp]
-    )
+async function loadSnapshot(snapshotId) {
+
+  const result = await pool.query(
+    "SELECT skills, bosses FROM snapshots WHERE id=$1",
+    [snapshotId]
   );
 
-  const bossPromises = Object.entries(bosses).map(([name, boss]) =>
-    pool.query(
-      "INSERT INTO bosskills(snapshot_id, boss_name, kills, rank) VALUES($1,$2,$3,$4)",
-      [snapshotId, name, boss.kills, boss.rank]
-    )
-  );
-
-  await Promise.all([...skillPromises, ...bossPromises]);
-
-  return snapshotId;
+  return result.rows[0];
 }
 
 app.get("/api/player/:username", async (req, res) => {
@@ -197,23 +140,12 @@ app.get("/api/player/:username", async (req, res) => {
       };
     });
 
-    const bossNames = [
-      "Abyssal Sire","Alchemical Hydra","Barrows Chests","Bryophyta","Callisto",
-      "Cerberus","Chambers of Xeric","Chambers of Xeric Challenge Mode","Chaos Elemental","Chaos Fanatic",
-      "Commander Zilyana","Corporeal Beast","Crazy Archaeologist"
-    ];
-
     const bosses = {};
-    const activitiesMap = Object.fromEntries(
-      (data.activities || []).map(a => [a.name, a])
-    );
 
-    bossNames.forEach(name => {
-      const activity = activitiesMap[name] || { rank: -1, score: 0 };
-
-      bosses[name] = {
-        rank: activity.rank ?? -1,
-        kills: activity.score ?? 0
+    (data.activities || []).forEach(a => {
+      bosses[a.name] = {
+        rank: a.rank ?? -1,
+        kills: a.score ?? 0
       };
     });
 
