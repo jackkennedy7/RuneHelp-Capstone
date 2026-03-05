@@ -19,6 +19,34 @@ const pool = new Pool({
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 
+const skillNames = [
+"Overall",
+"Attack",
+"Defence",
+"Strength",
+"Hitpoints",
+"Ranged",
+"Prayer",
+"Magic",
+"Cooking",
+"Woodcutting",
+"Fletching",
+"Fishing",
+"Firemaking",
+"Crafting",
+"Smithing",
+"Mining",
+"Herblore",
+"Agility",
+"Thieving",
+"Slayer",
+"Farming",
+"Runecrafting",
+"Hunter",
+"Construction",
+"Sailing"
+];
+
 app.get("/", (req, res) => {
   res.send("RuneHelp backend running");
 });
@@ -71,20 +99,18 @@ function computeDiffs(current, previous) {
   const prevSkills = previous?.skills || [];
   const prevActs = previous?.activities || [];
 
-  current.skills.forEach((s, i) => {
-
+ current.skills.forEach((s, i) => {
     const prev = prevSkills[i] || {};
+    const name = skillNames[i] || `Skill_${i}`;
 
-    skills[i] = {
+    skills[name] = {
       level: s.level,
       xp: s.xp,
       xpDiff: s.xp - (prev.xp || 0)
     };
-
   });
 
   current.activities.forEach((a, i) => {
-
     const prev = prevActs[i] || {};
 
     bosses[a.name] = {
@@ -92,7 +118,6 @@ function computeDiffs(current, previous) {
       kills: a.score,
       killsDiff: a.score - (prev.score || 0)
     };
-
   });
 
   return { skills, bosses };
