@@ -2,6 +2,8 @@ const searchButton = document.getElementById('searchButton');
 const searchInput = document.getElementById('searchInput');
 const playerContainer = document.getElementById('player-container');
 
+let selectedRange = "1d";
+
 searchButton.addEventListener('click', searchPlayer);
 
 async function searchPlayer() {
@@ -16,7 +18,7 @@ async function searchPlayer() {
 
     try {
         const response = await fetch(
-            `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}`
+            `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}?range=${selectedRange}`
         );
 
         if (!response.ok) {
@@ -80,6 +82,27 @@ function renderPlayer(data) {
     const header = document.createElement("h2");
     header.textContent = data.username || "Unknown Player";
     playerContainer.appendChild(header);
+
+    const rangeContainer = document.createElement("div");
+    rangeContainer.classList.add("range-container");
+
+    const ranges = ["1h", "1d", "7d"];
+
+    ranges.forEach(range => {
+        const btn = document.createElement("button");
+        btn.textContent = range;
+        if (range === selectedRange) btn.classList.add("active-tab");
+
+        btn.addEventListener("click", () => {
+            selectedRange = range;
+
+            // re-fetch player with new range
+            searchPlayer();
+        });
+        rangeContainer.appendChild(btn);
+    });
+
+    playerContainer.appendChild(rangeContainer);
 
     const tabContainer = document.createElement("div");
     tabContainer.classList.add("tab-container");
