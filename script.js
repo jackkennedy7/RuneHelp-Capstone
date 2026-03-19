@@ -26,7 +26,6 @@ async function searchPlayer() {
         }
 
         const data = await response.json();
-
         renderPlayer(data);
 
     } catch (err) {
@@ -49,10 +48,8 @@ function formatAbbrev(num) {
 
     if (abs >= 1_000_000_000)
         return sign + (abs / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
-
     if (abs >= 1_000_000)
         return sign + (abs / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-
     if (abs >= 1_000)
         return sign + (abs / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
 
@@ -79,12 +76,12 @@ function renderPlayer(data) {
         return;
     }
 
-    // --- Header: Username + Range ---
+    // --- Header ---
     const header = document.createElement("h2");
     header.textContent = `${data.username || "Unknown Player"} (${selectedRange})`;
     playerContainer.appendChild(header);
 
-    // --- Range Buttons with Description ---
+    // --- Range Buttons ---
     const rangeDesc = document.createElement("p");
     rangeDesc.textContent = "Select time range for delta stats:";
     rangeDesc.style.fontStyle = "italic";
@@ -95,27 +92,21 @@ function renderPlayer(data) {
     rangeContainer.style.marginBottom = "10px";
 
     const ranges = ["1h", "1d", "7d"];
-
     ranges.forEach(range => {
         const btn = document.createElement("button");
         btn.textContent = range;
         btn.style.marginRight = "5px";
         btn.style.cursor = "pointer";
-
-        // Highlight the selected range
         if (range === selectedRange) btn.classList.add("active-tab");
-
         btn.addEventListener("click", () => {
             selectedRange = range;
-            searchPlayer(); // Re-fetch player with new range
+            searchPlayer();
         });
-
         rangeContainer.appendChild(btn);
     });
-
     playerContainer.appendChild(rangeContainer);
 
-    // --- Tab Buttons (Skills / Bossing) with Description ---
+    // --- Tab Buttons ---
     const tabDesc = document.createElement("p");
     tabDesc.textContent = "Switch between Skills and Bossing stats:";
     tabDesc.style.fontStyle = "italic";
@@ -128,7 +119,7 @@ function renderPlayer(data) {
     const skillsTabBtn = document.createElement("button");
     skillsTabBtn.textContent = "Skills";
     skillsTabBtn.style.marginRight = "5px";
-    skillsTabBtn.classList.add("active-tab"); // Default selected
+    skillsTabBtn.classList.add("active-tab");
 
     const bossesTabBtn = document.createElement("button");
     bossesTabBtn.textContent = "Bossing";
@@ -140,7 +131,7 @@ function renderPlayer(data) {
     const contentContainer = document.createElement("div");
     playerContainer.appendChild(contentContainer);
 
-    // --- Render Functions ---
+    // --- Render Skills ---
     function renderSkills() {
         contentContainer.innerHTML = "";
         const table = document.createElement("table");
@@ -167,40 +158,203 @@ function renderPlayer(data) {
         contentContainer.appendChild(table);
     }
 
+    // --- Render Bosses with Search, Recommendations + Pagination ---
     function renderBosses() {
         contentContainer.innerHTML = "";
-        const table = document.createElement("table");
-        table.classList.add("stats-table");
-        table.innerHTML = `
-            <tr>
-                <th>Boss</th>
-                <th>Rank</th>
-                <th>Kills</th>
-                <th>Δ Kills</th>
-            </tr>
+
+        const allBossEntries = Object.entries(data.bosses);
+        const pageSize = 10;
+        let currentPage = 0;
+        let filteredEntries = allBossEntries;
+
+        // --- Search Box + Dropdown Wrapper ---
+        const searchWrapper = document.createElement("div");
+        searchWrapper.style.cssText = "position:relative; margin-bottom:10px;";
+
+        const bossSearch = document.createElement("input");
+        bossSearch.type = "text";
+        bossSearch.placeholder = "Search boss...";
+        bossSearch.style.cssText = `
+            width: 100%;
+            height: 30px;
+            border: 2px solid #8b4513;
+            border-radius: 5px;
+            padding: 0 8px;
+            font-family: rsFont;
+            box-sizing: border-box;
         `;
-        for (const [boss, info] of Object.entries(data.bosses)) {
-            const diff = info.killsDiff ?? 0;
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${capitalize(boss)}</td>
-                <td>${info.rank === "--" ? "--" : formatNumber(info.rank)}</td>
-                <td title="${formatNumber(info.kills)}">${formatAbbrev(info.kills)}</td>
-                <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">${formatDiff(diff)}</td>
-            `;
-            table.appendChild(row);
+
+        // --- Recommendations Dropdown ---
+        const dropdown = document.createElement("ul");
+        dropdown.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #f8f5ee;
+            border: 2px solid #8b4513;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            z-index: 50;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        `;
+
+        searchWrapper.appendChild(bossSearch);
+        searchWrapper.appendChild(dropdown);
+        contentContainer.appendChild(searchWrapper);
+
+        // --- Table Wrapper ---
+        const tableWrapper = document.createElement("div");
+        contentContainer.appendChild(tableWrapper);
+
+        function showDropdown(query) {
+            dropdown.innerHTML = "";
+
+            if (!query) {
+                dropdown.style.display = "none";
+                return;
+            }
+
+            const matches = allBossEntries
+                .filter(([boss]) => boss.toLowerCase().includes(query.toLowerCase()))
+                .slice(0, 8);
+
+            if (matches.length === 0) {
+                dropdown.style.display = "none";
+                return;
+            }
+
+            matches.forEach(([boss]) => {
+                const item = document.createElement("li");
+                item.textContent = capitalize(boss);
+                item.style.cssText = `
+                    padding: 6px 10px;
+                    cursor: pointer;
+                    font-family: rsFont;
+                    font-size: 0.9rem;
+                    border-bottom: 1px solid #d4b896;
+                `;
+
+                item.addEventListener("mouseenter", () => {
+                    item.style.backgroundColor = "#e8d9c0";
+                });
+                item.addEventListener("mouseleave", () => {
+                    item.style.backgroundColor = "";
+                });
+
+                item.addEventListener("mousedown", () => {
+                    bossSearch.value = capitalize(boss);
+                    dropdown.style.display = "none";
+                    filteredEntries = allBossEntries.filter(
+                        ([b]) => b.toLowerCase() === boss.toLowerCase()
+                    );
+                    currentPage = 0;
+                    renderPage(currentPage);
+                });
+
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = "block";
         }
-        contentContainer.appendChild(table);
+
+        bossSearch.addEventListener("input", () => {
+            const query = bossSearch.value.trim();
+            filteredEntries = query
+                ? allBossEntries.filter(([boss]) => boss.toLowerCase().includes(query.toLowerCase()))
+                : allBossEntries;
+            currentPage = 0;
+            showDropdown(query);
+            renderPage(currentPage);
+        });
+
+        bossSearch.addEventListener("blur", () => {
+            setTimeout(() => { dropdown.style.display = "none"; }, 150);
+        });
+
+        bossSearch.addEventListener("focus", () => {
+            if (bossSearch.value.trim()) showDropdown(bossSearch.value.trim());
+        });
+
+        function renderPage(page) {
+            tableWrapper.innerHTML = "";
+            currentPage = page;
+
+            const totalPages = Math.ceil(filteredEntries.length / pageSize);
+
+            const table = document.createElement("table");
+            table.classList.add("stats-table");
+            table.innerHTML = `
+                <tr>
+                    <th>Boss</th>
+                    <th>Rank</th>
+                    <th>Kills</th>
+                    <th>Δ Kills</th>
+                </tr>
+            `;
+
+            if (filteredEntries.length === 0) {
+                const empty = document.createElement("tr");
+                empty.innerHTML = `<td colspan="4" style="text-align:center; color:gray;">No bosses found</td>`;
+                table.appendChild(empty);
+            } else {
+                const start = page * pageSize;
+                const pageSlice = filteredEntries.slice(start, start + pageSize);
+
+                for (const [boss, info] of pageSlice) {
+                    const diff = info.killsDiff ?? 0;
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${capitalize(boss)}</td>
+                        <td>${info.rank === "--" ? "--" : formatNumber(info.rank)}</td>
+                        <td title="${formatNumber(info.kills)}">${formatAbbrev(info.kills)}</td>
+                        <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">${formatDiff(diff)}</td>
+                    `;
+                    table.appendChild(row);
+                }
+            }
+
+            tableWrapper.appendChild(table);
+
+            if (totalPages > 1) {
+                const pagination = document.createElement("div");
+                pagination.style.cssText = "display:flex; align-items:center; justify-content:center; gap:12px; margin-top:10px;";
+
+                const prevBtn = document.createElement("button");
+                prevBtn.textContent = "← Prev";
+                prevBtn.disabled = page === 0;
+                prevBtn.addEventListener("click", () => renderPage(currentPage - 1));
+
+                const pageLabel = document.createElement("span");
+                pageLabel.textContent = `Page ${page + 1} of ${totalPages}`;
+                pageLabel.style.fontFamily = "rsFont, sans-serif";
+
+                const nextBtn = document.createElement("button");
+                nextBtn.textContent = "Next →";
+                nextBtn.disabled = page === totalPages - 1;
+                nextBtn.addEventListener("click", () => renderPage(currentPage + 1));
+
+                pagination.appendChild(prevBtn);
+                pagination.appendChild(pageLabel);
+                pagination.appendChild(nextBtn);
+                tableWrapper.appendChild(pagination);
+            }
+        }
+
+        renderPage(currentPage);
     }
 
-    // --- Tab Button Highlighting ---
+    // --- Tab Switching ---
     function updateTabActive(selectedBtn) {
         [skillsTabBtn, bossesTabBtn].forEach(btn => {
-            if (btn === selectedBtn) {
-                btn.classList.add("active-tab");
-            } else {
-                btn.classList.remove("active-tab");
-            }
+            btn === selectedBtn
+                ? btn.classList.add("active-tab")
+                : btn.classList.remove("active-tab");
         });
     }
 
@@ -224,7 +378,6 @@ function capitalize(word = "") {
 }
 
 function normalizePlayerData(data) {
-
     const normalized = {
         username: data.username,
         skills: {},
@@ -232,10 +385,8 @@ function normalizePlayerData(data) {
     };
 
     for (const [skill, info] of Object.entries(data.skills)) {
-
         const xp = Number(info.xp ?? 0);
         const xpDiff = Number(info.xpDiff ?? 0);
-
         normalized.skills[skill] = {
             level: info.level === -1 ? 1 : Number(info.level ?? 1),
             xp: xp === -1 ? 0 : xp,
@@ -244,10 +395,8 @@ function normalizePlayerData(data) {
     }
 
     for (const [boss, info] of Object.entries(data.bosses)) {
-
         const kills = Number(info.kills ?? 0);
         const killsDiff = Number(info.killsDiff ?? 0);
-
         normalized.bosses[boss] = {
             kills: kills === -1 ? 0 : kills,
             rank: info.rank === -1 ? "--" : info.rank,
@@ -258,8 +407,7 @@ function normalizePlayerData(data) {
     return normalized;
 }
 
-
-// Chat logic
+// --- Chat Logic ---
 const chatBubble = document.getElementById('chatBubble');
 const chatBox = document.getElementById('chatBox');
 const chatClose = document.getElementById('chatClose');
@@ -268,26 +416,26 @@ const chatInput = document.getElementById('chatInput');
 const chatMessages = document.getElementById('chatMessages');
 
 chatBubble.addEventListener('click', () => {
-  chatBox.classList.toggle('open');
+    chatBox.classList.toggle('open');
 });
 
 chatClose.addEventListener('click', () => {
-  chatBox.classList.remove('open');
+    chatBox.classList.remove('open');
 });
 
 chatSend.addEventListener('click', sendMessage);
 chatInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter') sendMessage();
 });
 
 function sendMessage() {
-  const text = chatInput.value.trim();
-  if (!text) return;
+    const text = chatInput.value.trim();
+    if (!text) return;
 
-  const userMsg = document.createElement('div');
-  userMsg.classList.add('chat-msg', 'user');
-  userMsg.textContent = text;
-  chatMessages.appendChild(userMsg);
-  chatInput.value = '';
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+    const userMsg = document.createElement('div');
+    userMsg.classList.add('chat-msg', 'user');
+    userMsg.textContent = text;
+    chatMessages.appendChild(userMsg);
+    chatInput.value = '';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
