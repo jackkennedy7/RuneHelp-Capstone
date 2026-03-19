@@ -144,34 +144,30 @@ function renderPlayer(data) {
         table.innerHTML = `
             <tr>
                 <th>Boss</th>
+                <th>Rank</th>
                 <th>Kills</th>
                 <th>Δ Kills</th>
-                <th>Rank</th>
             </tr>
         `;
 
         for (const [boss, info] of Object.entries(data.bosses)) {
-
             const diff = info.killsDiff ?? 0;
-
             const row = document.createElement("tr");
 
             row.innerHTML = `
                 <td>${capitalize(boss)}</td>
+                <td>
+                    ${info.rank === "--" ? "--" : formatNumber(info.rank)}
+                </td>
                 <td title="${formatNumber(info.kills)}">
                     ${formatAbbrev(info.kills)}
                 </td>
                 <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">
                     ${formatDiff(diff)}
                 </td>
-                <td>
-                    ${info.rank === "--" ? "--" : formatNumber(info.rank)}
-                </td>
             `;
-
             table.appendChild(row);
         }
-
         contentContainer.appendChild(table);
     }
 
