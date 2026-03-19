@@ -3,7 +3,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const fetch = (...args) => import("node-fetch").then(({default: fetch}) => fetch(...args));
-
 const { Pool } = require("pg");
 
 const app = express();
@@ -20,39 +19,28 @@ const pool = new Pool({
 const FIVE_MINUTES = 5 * 60 * 1000;
 
 const skillNames = [
-"Overall",
-"Attack",
-"Defence",
-"Strength",
-"Hitpoints",
-"Ranged",
-"Prayer",
-"Magic",
-"Cooking",
-"Woodcutting",
-"Fletching",
-"Fishing",
-"Firemaking",
-"Crafting",
-"Smithing",
-"Mining",
-"Herblore",
-"Agility",
-"Thieving",
-"Slayer",
-"Farming",
-"Runecrafting",
-"Hunter",
-"Construction",
-"Sailing"
+"Overall","Attack","Defence","Strength","Hitpoints","Ranged","Prayer","Magic",
+"Cooking","Woodcutting","Fletching","Fishing","Firemaking","Crafting","Smithing",
+"Mining","Herblore","Agility","Thieving","Slayer","Farming","Runecrafting",
+"Hunter","Construction","Sailing"
 ];
 
 app.get("/", (req, res) => {
   res.send("RuneHelp backend running");
 });
 
-async function getPlayerId(username) {
+function parseRange(range) {
+  if (!range) return 24 * 60 * 60 * 1000; // default 1 day
 
+  const num = parseInt(range);
+
+  if (range.endsWith("h")) return num * 60 * 60 * 1000;
+  if (range.endsWith("d")) return num * 24 * 60 * 60 * 1000;
+
+  return 24 * 60 * 60 * 1000;
+}
+
+async function getPlayerId(username) {
   const result = await pool.query(
     `INSERT INTO players(username)
      VALUES($1)
@@ -66,7 +54,6 @@ async function getPlayerId(username) {
 }
 
 async function getLatestSnapshot(playerId) {
-
   const result = await pool.query(
     `SELECT id, data, created_at
      FROM snapshots
@@ -79,8 +66,21 @@ async function getLatestSnapshot(playerId) {
   return result.rows[0] || null;
 }
 
-async function insertSnapshot(playerId, data) {
+async function getSnapshotAtTime(playerId, targetTime) {
+  const result = await pool.query(
+    `SELECT data, created_at
+     FROM snapshots
+     WHERE player_id=$1
+       AND created_at <= $2
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [playerId, targetTime]
+  );
 
+  return result.rows[0] || null;
+}
+
+async function insertSnapshot(playerId, data) {
   const result = await pool.query(
     `INSERT INTO snapshots(player_id, data)
      VALUES($1,$2)
@@ -99,7 +99,7 @@ function computeDiffs(current, previous) {
   const prevSkills = previous?.skills || [];
   const prevActs = previous?.activities || [];
 
- current.skills.forEach((s, i) => {
+  current.skills.forEach((s, i) => {
     const prev = prevSkills[i] || {};
     const name = skillNames[i] || `Skill_${i}`;
 
@@ -124,32 +124,27 @@ function computeDiffs(current, previous) {
 }
 
 app.get("/api/player/:username", async (req, res) => {
-
   try {
-
     const username = req.params.username.trim();
+
+    const rangeMs = parseRange(req.query.range);
+    const targetTime = new Date(Date.now() - rangeMs);
 
     const playerId = await getPlayerId(username);
 
     const latest = await getLatestSnapshot(playerId);
 
+
     if (latest && (Date.now() - new Date(latest.created_at)) < FIVE_MINUTES) {
 
-      const prev = await pool.query(
-        `SELECT data
-         FROM snapshots
-         WHERE player_id=$1 AND id < $2
-         ORDER BY created_at DESC
-         LIMIT 1`,
-        [playerId, latest.id]
-      );
-
-      const previousData = prev.rows[0]?.data;
+      const previousSnapshot = await getSnapshotAtTime(playerId, targetTime);
+      const previousData = previousSnapshot?.data;
 
       const diffs = computeDiffs(latest.data, previousData);
 
       return res.json({
         username,
+        range: req.query.range || "1d",
         ...diffs,
         cached: true
       });
@@ -166,32 +161,22 @@ app.get("/api/player/:username", async (req, res) => {
 
     const snapshotId = await insertSnapshot(playerId, data);
 
-    const prev = await pool.query(
-      `SELECT data
-       FROM snapshots
-       WHERE player_id=$1 AND id < $2
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [playerId, snapshotId]
-    );
-
-    const previousData = prev.rows[0]?.data;
+    const previousSnapshot = await getSnapshotAtTime(playerId, targetTime);
+    const previousData = previousSnapshot?.data;
 
     const diffs = computeDiffs(data, previousData);
 
     res.json({
       username,
+      range: req.query.range || "1d",
       ...diffs,
       cached: false
     });
 
   } catch (err) {
-
     console.error(err);
     res.status(500).json({ error: "Server error" });
-
   }
-
 });
 
 app.listen(PORT, () => {
