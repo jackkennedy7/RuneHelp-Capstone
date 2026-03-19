@@ -192,7 +192,11 @@ function capitalize(word = "") {
 
 function normalizePlayerData(data) {
 
-    const normalized = { skills: {}, bosses: {} };
+    const normalized = {
+        username: data.username,
+        skills: {},
+        bosses: {}
+    };
 
     for (const [skill, info] of Object.entries(data.skills)) {
 
