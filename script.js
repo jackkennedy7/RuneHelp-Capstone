@@ -34,6 +34,40 @@ async function searchPlayer() {
     }
 }
 
+function formatNumber(num) {
+    if (num === null || num === undefined) return "0";
+    return Number(num).toLocaleString("en-US");
+}
+
+function formatAbbrev(num) {
+    if (num === null || num === undefined) return "0";
+
+    const sign = num < 0 ? "-" : "";
+    const abs = Math.abs(num);
+
+    if (abs >= 1_000_000_000)
+        return sign + (abs / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+
+    if (abs >= 1_000_000)
+        return sign + (abs / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+
+    if (abs >= 1_000)
+        return sign + (abs / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+
+    return sign + abs.toString();
+}
+
+function formatDiff(num) {
+    if (num === 0) return "—";
+    return `${num > 0 ? "+" : ""}${formatAbbrev(num)}`;
+}
+
+function getDiffColor(num) {
+    if (num > 0) return "green";
+    if (num < 0) return "red";
+    return "gray";
+}
+
 function renderPlayer(data) {
     data = normalizePlayerData(data);
     playerContainer.innerHTML = "";
@@ -47,7 +81,6 @@ function renderPlayer(data) {
     header.textContent = data.username || "Unknown Player";
     playerContainer.appendChild(header);
 
-    // 🔹 Create tab buttons
     const tabContainer = document.createElement("div");
     tabContainer.classList.add("tab-container");
 
@@ -62,7 +95,6 @@ function renderPlayer(data) {
     tabContainer.appendChild(bossesTabBtn);
     playerContainer.appendChild(tabContainer);
 
-    // 🔹 Create content container
     const contentContainer = document.createElement("div");
     playerContainer.appendChild(contentContainer);
 
@@ -81,68 +113,68 @@ function renderPlayer(data) {
             </tr>
         `;
 
-    for (const [skill, info] of Object.entries(data.skills)) {
+        for (const [skill, info] of Object.entries(data.skills)) {
 
-        const diff = info.xpDiff;
-        const diffColor = diff > 0 ? "green" : diff < 0 ? "red" : "gray";
+            const diff = info.xpDiff;
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${capitalize(skill)}</td>
-            <td>${info.level}</td>
-            <td>${info.xp.toLocaleString()}</td>
-            <td style="color:${diffColor}">
-                ${diff > 0 ? "+" : ""}${diff.toLocaleString()}
-            </td>
-        `;
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${capitalize(skill)}</td>
+                <td>${info.level}</td>
+                <td title="${formatNumber(info.xp)}">
+                    ${formatAbbrev(info.xp)}
+                </td>
+                <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">
+                    ${formatDiff(diff)}
+                </td>
+            `;
 
-        table.appendChild(row);
-    }
+            table.appendChild(row);
+        }
 
         contentContainer.appendChild(table);
     }
 
     function renderBosses() {
-    contentContainer.innerHTML = "";
+        contentContainer.innerHTML = "";
 
-    const table = document.createElement("table");
-    table.classList.add("stats-table");
+        const table = document.createElement("table");
+        table.classList.add("stats-table");
 
-    table.innerHTML = `
-        <tr>
-            <th>Boss</th>
-            <th>Kills</th>
-            <th>Δ Kills</th>
-            <th>Rank</th>
-        </tr>
-    `;
-
-    for (const [boss, info] of Object.entries(data.bosses)) {
-
-        const diff = info.killsDiff ?? 0;
-        const diffColor =
-            diff > 0 ? "green" :
-            diff < 0 ? "red" :
-            "gray";
-
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-            <td>${capitalize(boss)}</td>
-            <td>${Number(info.kills ?? 0).toLocaleString()}</td>
-            <td style="color:${diffColor}">
-                ${diff > 0 ? "+" : ""}${Number(diff).toLocaleString()}
-            </td>
-            <td>${info.rank ?? "--"}</td>
+        table.innerHTML = `
+            <tr>
+                <th>Boss</th>
+                <th>Kills</th>
+                <th>Δ Kills</th>
+                <th>Rank</th>
+            </tr>
         `;
 
-        table.appendChild(row);
+        for (const [boss, info] of Object.entries(data.bosses)) {
+
+            const diff = info.killsDiff ?? 0;
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${capitalize(boss)}</td>
+                <td title="${formatNumber(info.kills)}">
+                    ${formatAbbrev(info.kills)}
+                </td>
+                <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">
+                    ${formatDiff(diff)}
+                </td>
+                <td>
+                    ${info.rank === "--" ? "--" : formatNumber(info.rank)}
+                </td>
+            `;
+
+            table.appendChild(row);
+        }
+
+        contentContainer.appendChild(table);
     }
 
-    contentContainer.appendChild(table);
-}
-
-    // 🔹 Tab switching logic
     skillsTabBtn.addEventListener("click", () => {
         skillsTabBtn.classList.add("active-tab");
         bossesTabBtn.classList.remove("active-tab");
@@ -155,7 +187,6 @@ function renderPlayer(data) {
         renderBosses();
     });
 
-    // Default tab
     renderSkills();
 }
 
@@ -195,7 +226,7 @@ function normalizePlayerData(data) {
 }
 
 
-/* <------ Chat Script --------> */
+// Chat logic
 const chatBubble = document.getElementById('chatBubble');
 const chatBox = document.getElementById('chatBox');
 const chatClose = document.getElementById('chatClose');
