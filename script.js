@@ -79,10 +79,12 @@ function renderPlayer(data) {
         return;
     }
 
+    // --- Header: Username + Range ---
     const header = document.createElement("h2");
     header.textContent = `${data.username || "Unknown Player"} (${selectedRange})`;
     playerContainer.appendChild(header);
 
+    // --- Range Buttons with Description ---
     const rangeDesc = document.createElement("p");
     rangeDesc.textContent = "Select time range for delta stats:";
     rangeDesc.style.fontStyle = "italic";
@@ -93,39 +95,27 @@ function renderPlayer(data) {
     rangeContainer.style.marginBottom = "10px";
 
     const ranges = ["1h", "1d", "7d"];
+
     ranges.forEach(range => {
         const btn = document.createElement("button");
         btn.textContent = range;
         btn.style.marginRight = "5px";
-        btn.style.padding = "5px 10px";
         btn.style.cursor = "pointer";
 
-        function updateActive() {
-            ranges.forEach(r => {
-                const b = rangeContainer.querySelector(`button:nth-child(${ranges.indexOf(r)+1})`);
-                if (r === range) {
-                    b.style.backgroundColor = "#4CAF50";
-                    b.style.color = "white";
-                    b.style.border = "2px solid #388E3C";
-                } else {
-                    b.style.backgroundColor = "";
-                    b.style.color = "";
-                    b.style.border = "";
-                }
-            });
-        }
-
-        updateActive();
+        // Highlight the selected range
+        if (range === selectedRange) btn.classList.add("active-tab");
 
         btn.addEventListener("click", () => {
             selectedRange = range;
-            searchPlayer();
+            searchPlayer(); // Re-fetch player with new range
         });
 
         rangeContainer.appendChild(btn);
     });
+
     playerContainer.appendChild(rangeContainer);
 
+    // --- Tab Buttons (Skills / Bossing) with Description ---
     const tabDesc = document.createElement("p");
     tabDesc.textContent = "Switch between Skills and Bossing stats:";
     tabDesc.style.fontStyle = "italic";
@@ -138,6 +128,7 @@ function renderPlayer(data) {
     const skillsTabBtn = document.createElement("button");
     skillsTabBtn.textContent = "Skills";
     skillsTabBtn.style.marginRight = "5px";
+    skillsTabBtn.classList.add("active-tab"); // Default selected
 
     const bossesTabBtn = document.createElement("button");
     bossesTabBtn.textContent = "Bossing";
@@ -149,6 +140,7 @@ function renderPlayer(data) {
     const contentContainer = document.createElement("div");
     playerContainer.appendChild(contentContainer);
 
+    // --- Render Functions ---
     function renderSkills() {
         contentContainer.innerHTML = "";
         const table = document.createElement("table");
@@ -201,16 +193,13 @@ function renderPlayer(data) {
         contentContainer.appendChild(table);
     }
 
+    // --- Tab Button Highlighting ---
     function updateTabActive(selectedBtn) {
         [skillsTabBtn, bossesTabBtn].forEach(btn => {
             if (btn === selectedBtn) {
-                btn.style.backgroundColor = "#2196F3";
-                btn.style.color = "white";
-                btn.style.border = "2px solid #1976D2";
+                btn.classList.add("active-tab");
             } else {
-                btn.style.backgroundColor = "";
-                btn.style.color = "";
-                btn.style.border = "";
+                btn.classList.remove("active-tab");
             }
         });
     }
@@ -225,6 +214,7 @@ function renderPlayer(data) {
         renderBosses();
     });
 
+    // Initial render
     updateTabActive(skillsTabBtn);
     renderSkills();
 }
