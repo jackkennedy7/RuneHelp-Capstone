@@ -78,6 +78,10 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  background-image: url('./images/header.png');
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: 100% 100%;
 }
 
 .site-logo {
