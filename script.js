@@ -83,33 +83,61 @@ function renderPlayer(data) {
     header.textContent = `${data.username || "Unknown Player"} (${selectedRange})`;
     playerContainer.appendChild(header);
 
+    const rangeDesc = document.createElement("p");
+    rangeDesc.textContent = "Select time range for delta stats:";
+    rangeDesc.style.fontStyle = "italic";
+    playerContainer.appendChild(rangeDesc);
+
     const rangeContainer = document.createElement("div");
     rangeContainer.classList.add("range-container");
+    rangeContainer.style.marginBottom = "10px";
 
     const ranges = ["1h", "1d", "7d"];
-
     ranges.forEach(range => {
         const btn = document.createElement("button");
         btn.textContent = range;
-        btn.classList.toggle("active-tab", range === selectedRange);
+        btn.style.marginRight = "5px";
+        btn.style.padding = "5px 10px";
+        btn.style.cursor = "pointer";
+
+        function updateActive() {
+            ranges.forEach(r => {
+                const b = rangeContainer.querySelector(`button:nth-child(${ranges.indexOf(r)+1})`);
+                if (r === range) {
+                    b.style.backgroundColor = "#4CAF50";
+                    b.style.color = "white";
+                    b.style.border = "2px solid #388E3C";
+                } else {
+                    b.style.backgroundColor = "";
+                    b.style.color = "";
+                    b.style.border = "";
+                }
+            });
+        }
+
+        updateActive();
 
         btn.addEventListener("click", () => {
             selectedRange = range;
-
-            // re-fetch player with new range
             searchPlayer();
         });
+
         rangeContainer.appendChild(btn);
     });
-
     playerContainer.appendChild(rangeContainer);
+
+    const tabDesc = document.createElement("p");
+    tabDesc.textContent = "Switch between Skills and Bossing stats:";
+    tabDesc.style.fontStyle = "italic";
+    playerContainer.appendChild(tabDesc);
 
     const tabContainer = document.createElement("div");
     tabContainer.classList.add("tab-container");
+    tabContainer.style.marginBottom = "10px";
 
     const skillsTabBtn = document.createElement("button");
     skillsTabBtn.textContent = "Skills";
-    skillsTabBtn.classList.add("active-tab");
+    skillsTabBtn.style.marginRight = "5px";
 
     const bossesTabBtn = document.createElement("button");
     bossesTabBtn.textContent = "Bossing";
@@ -120,14 +148,11 @@ function renderPlayer(data) {
 
     const contentContainer = document.createElement("div");
     playerContainer.appendChild(contentContainer);
-    rangeContainer.style.marginBottom = "10px";
 
     function renderSkills() {
         contentContainer.innerHTML = "";
-
         const table = document.createElement("table");
         table.classList.add("stats-table");
-
         table.innerHTML = `
             <tr>
                 <th>Skill</th>
@@ -136,33 +161,24 @@ function renderPlayer(data) {
                 <th>Δ XP</th>
             </tr>
         `;
-
         for (const [skill, info] of Object.entries(data.skills)) {
             const diff = info.xpDiff;
-
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${capitalize(skill)}</td>
                 <td>${info.level}</td>
-                <td title="${formatNumber(info.xp)}">
-                    ${formatAbbrev(info.xp)}
-                </td>
-                <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">
-                    ${formatDiff(diff)}
-                </td>
+                <td title="${formatNumber(info.xp)}">${formatAbbrev(info.xp)}</td>
+                <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">${formatDiff(diff)}</td>
             `;
             table.appendChild(row);
         }
-
         contentContainer.appendChild(table);
     }
 
     function renderBosses() {
         contentContainer.innerHTML = "";
-
         const table = document.createElement("table");
         table.classList.add("stats-table");
-
         table.innerHTML = `
             <tr>
                 <th>Boss</th>
@@ -171,40 +187,45 @@ function renderPlayer(data) {
                 <th>Δ Kills</th>
             </tr>
         `;
-
         for (const [boss, info] of Object.entries(data.bosses)) {
             const diff = info.killsDiff ?? 0;
             const row = document.createElement("tr");
-
             row.innerHTML = `
                 <td>${capitalize(boss)}</td>
-                <td>
-                    ${info.rank === "--" ? "--" : formatNumber(info.rank)}
-                </td>
-                <td title="${formatNumber(info.kills)}">
-                    ${formatAbbrev(info.kills)}
-                </td>
-                <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">
-                    ${formatDiff(diff)}
-                </td>
+                <td>${info.rank === "--" ? "--" : formatNumber(info.rank)}</td>
+                <td title="${formatNumber(info.kills)}">${formatAbbrev(info.kills)}</td>
+                <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">${formatDiff(diff)}</td>
             `;
             table.appendChild(row);
         }
         contentContainer.appendChild(table);
     }
 
+    function updateTabActive(selectedBtn) {
+        [skillsTabBtn, bossesTabBtn].forEach(btn => {
+            if (btn === selectedBtn) {
+                btn.style.backgroundColor = "#2196F3";
+                btn.style.color = "white";
+                btn.style.border = "2px solid #1976D2";
+            } else {
+                btn.style.backgroundColor = "";
+                btn.style.color = "";
+                btn.style.border = "";
+            }
+        });
+    }
+
     skillsTabBtn.addEventListener("click", () => {
-        skillsTabBtn.classList.add("active-tab");
-        bossesTabBtn.classList.remove("active-tab");
+        updateTabActive(skillsTabBtn);
         renderSkills();
     });
 
     bossesTabBtn.addEventListener("click", () => {
-        bossesTabBtn.classList.add("active-tab");
-        skillsTabBtn.classList.remove("active-tab");
+        updateTabActive(bossesTabBtn);
         renderBosses();
     });
 
+    updateTabActive(skillsTabBtn);
     renderSkills();
 }
 
