@@ -80,7 +80,7 @@ function renderPlayer(data) {
     }
 
     const header = document.createElement("h2");
-    header.textContent = data.username || "Unknown Player";
+    header.textContent = `${data.username || "Unknown Player"} (${selectedRange})`;
     playerContainer.appendChild(header);
 
     const rangeContainer = document.createElement("div");
@@ -91,7 +91,7 @@ function renderPlayer(data) {
     ranges.forEach(range => {
         const btn = document.createElement("button");
         btn.textContent = range;
-        if (range === selectedRange) btn.classList.add("active-tab");
+        btn.classList.toggle("active-tab", range === selectedRange);
 
         btn.addEventListener("click", () => {
             selectedRange = range;
@@ -120,6 +120,7 @@ function renderPlayer(data) {
 
     const contentContainer = document.createElement("div");
     playerContainer.appendChild(contentContainer);
+    rangeContainer.style.marginBottom = "10px";
 
     function renderSkills() {
         contentContainer.innerHTML = "";
@@ -137,7 +138,6 @@ function renderPlayer(data) {
         `;
 
         for (const [skill, info] of Object.entries(data.skills)) {
-
             const diff = info.xpDiff;
 
             const row = document.createElement("tr");
@@ -151,7 +151,6 @@ function renderPlayer(data) {
                     ${formatDiff(diff)}
                 </td>
             `;
-
             table.appendChild(row);
         }
 
