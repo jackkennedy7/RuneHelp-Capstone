@@ -189,7 +189,7 @@ function renderPlayer(data) {
         "Clue Scrolls (all)","Clue Scrolls (beginner)","Clue Scrolls (easy)",
         "Clue Scrolls (medium)","Clue Scrolls (hard)","Clue Scrolls (elite)",
         "Clue Scrolls (master)","LMS - Rank","PvP Arena - Rank",
-        "Soul Wars Zeal","Rifts closed","Colosseum Glory"
+        "Soul Wars Zeal","Rifts closed","Colosseum Glory", "Collections Logged"
     ]);
 
     const allBossEntries = Object.entries(data.bosses);
