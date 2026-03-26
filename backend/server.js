@@ -217,6 +217,45 @@ app.get("/api/player/:username", async (req, res) => {
   }
 });
 
+app.post("/api/chat", async (req, res) => {
+  const { messages, system } = req.body;
+
+  const geminiMessages = messages.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: system || "You are a helpful OSRS assistant." }] },
+        contents: geminiMessages,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("Gemini error:", data);
+    return res.status(response.status).json({ error: data.error?.message ?? "Gemini API error" });
+  }
+
+  // Reshape to match the Anthropic format your frontend expects
+  const text = data.candidates[0].content.parts[0].text;
+  res.json({ content: [{ text }] });
+});
+
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
+```
+
+Then in `.env` and Render:
+```
+GEMINI_API_KEY=AIzaSyAtN3V75U2S_-Y0sxbwf9Se0SfjO5dECqc

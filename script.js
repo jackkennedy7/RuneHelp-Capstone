@@ -427,7 +427,6 @@ function renderPlayer(data) {
 }
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
-
 const chatBubble = document.getElementById('chatBubble');
 const chatBox = document.getElementById('chatBox');
 const chatClose = document.getElementById('chatClose');
@@ -470,7 +469,6 @@ function parseIntent(text) {
   if (lower.includes('compare') || lower.includes('vs')) return { intent: 'compare' };
   if (currentPlayerData && /how|why|what|when|best|worst|should|tip|advice/i.test(text))
     return { intent: 'followup' };
-  // Bare short input with no spaces treated as a username guess
   if (/^[A-Za-z0-9_-]{2,12}$/.test(text.trim()))
     return { intent: 'lookup', username: text.trim() };
   return { intent: 'chat' };
@@ -501,11 +499,11 @@ You have access to live player stats fetched from the Wise Old Man API.
   return base;
 }
 
-// ─── Call Claude via your backend ────────────────────────
-async function callClaude(userMessage) {
+// ─── Call Gemini via backend ──────────────────────────────
+async function callGemini(userMessage) {
   conversationHistory.push({ role: 'user', content: userMessage });
 
-  const res = await fetch('/api/chat', {
+  const res = await fetch('https://runehelp.onrender.com/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -538,13 +536,13 @@ async function sendMessage() {
       typingMsg.textContent = `Looking up ${username}…`;
       currentPlayerData = await fetchPlayerData(username);
 
-      const reply = await callClaude(
+      const reply = await callGemini(
         `I just looked up "${username}". Here are their stats for the last ${selectedRange}. Give me a friendly summary with the highlights.`
       );
       typingMsg.textContent = reply;
 
     } else {
-      const reply = await callClaude(text);
+      const reply = await callGemini(text);
       typingMsg.textContent = reply;
     }
 
