@@ -395,7 +395,6 @@ function renderPlayer(data) {
     renderSkills();
 }
 
-<<<<<<< Updated upstream
 function capitalize(word = "") {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }
@@ -431,10 +430,6 @@ function normalizePlayerData(data) {
 }
 
 // --- Chat Logic ---
-=======
-/* <------ Chat Script -------> */
-
->>>>>>> Stashed changes
 const chatBubble = document.getElementById('chatBubble');
 const chatBox = document.getElementById('chatBox');
 const chatClose = document.getElementById('chatClose');
@@ -443,24 +438,15 @@ const chatInput = document.getElementById('chatInput');
 const chatMessages = document.getElementById('chatMessages');
 
 chatBubble.addEventListener('click', () => {
-<<<<<<< Updated upstream
     chatBox.classList.toggle('open');
 });
 
 chatClose.addEventListener('click', () => {
     chatBox.classList.remove('open');
-=======
-  chatBox.classList.toggle('open');
-});
-
-chatClose.addEventListener('click', () => {
-  chatBox.classList.remove('open');
->>>>>>> Stashed changes
 });
 
 chatSend.addEventListener('click', sendMessage);
 chatInput.addEventListener('keydown', (e) => {
-<<<<<<< Updated upstream
     if (e.key === 'Enter') sendMessage();
 });
 
@@ -615,19 +601,3 @@ chatBubble.addEventListener('click', () => chatBox.classList.toggle('open'));
 chatClose.addEventListener('click', () => chatBox.classList.remove('open'));
 chatSend.addEventListener('click', sendMessage);
 chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
-=======
-  if (e.key === 'Enter') sendMessage();
-});
-
-function sendMessage() {
-  const text = chatInput.value.trim();
-  if (!text) return;
-
-  const userMsg = document.createElement('div');
-  userMsg.classList.add('chat-msg', 'user');
-  userMsg.textContent = text;
-  chatMessages.appendChild(userMsg);
-  chatInput.value = '';
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
->>>>>>> Stashed changes
