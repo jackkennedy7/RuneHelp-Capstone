@@ -17,7 +17,6 @@ const pool = new Pool({
 });
 
 // ─── Domain constants ─────────────────────────────────────────────────────────
-// Keeping this on the server means clients never need to know the distinction.
 
 const ACTIVITY_NAMES = new Set([
   "Grid Points", "League Points", "Deadman Points",
@@ -38,11 +37,6 @@ async function fetchHiscores(username) {
   return response.json();
 }
 
-/**
- * Parses the hiscore JSON into structured { skills, bosses } objects.
- * Uses the JSON keys directly instead of positional line offsets,
- * so adding a new skill/boss on Jagex's end won't silently corrupt data.
- */
 function parseHiscores(json) {
   const skills = {};
   for (const [name, data] of Object.entries(json.skills ?? {})) {
@@ -78,7 +72,7 @@ async function getOrCreatePlayer(username) {
 
 async function getLatestSnapshot(playerId) {
   const result = await pool.query(
-    `SELECT id, created_at FROM snapshots
+    `SELECT id, data, created_at FROM snapshots
      WHERE player_id = $1
      ORDER BY created_at DESC
      LIMIT 1`,
@@ -87,67 +81,25 @@ async function getLatestSnapshot(playerId) {
   return result.rows[0] ?? null;
 }
 
-async function loadSnapshotData(snapshotId) {
-  const [skillsResult, bossesResult] = await Promise.all([
-    pool.query(
-      "SELECT skill_name, level, xp FROM skills WHERE snapshot_id = $1",
-      [snapshotId]
-    ),
-    pool.query(
-      // Use consistent column name: boss_name (see note in insertSnapshot)
-      "SELECT boss_name, kills, rank FROM bosskills WHERE snapshot_id = $1",
-      [snapshotId]
-    ),
-  ]);
-
-  const skills = {};
-  skillsResult.rows.forEach(row => {
-    skills[row.skill_name] = { level: row.level, xp: row.xp };
-  });
-
-  const bosses = {};
-  bossesResult.rows.forEach(row => {
-    bosses[row.boss_name] = { kills: row.kills, rank: row.rank };
-  });
-
-  return { skills, bosses };
-}
-
 async function insertSnapshot(playerId, skills, bosses) {
-  const snapshotResult = await pool.query(
-    "INSERT INTO snapshots (player_id) VALUES ($1) RETURNING id",
-    [playerId]
+  await pool.query(
+    `INSERT INTO snapshots (player_id, data) VALUES ($1, $2)`,
+    [playerId, JSON.stringify({ skills, bosses })]
   );
-  const snapshotId = snapshotResult.rows[0].id;
-
-  await Promise.all([
-    ...Object.entries(skills).map(([name, s]) =>
-      pool.query(
-        "INSERT INTO skills (snapshot_id, skill_name, level, xp) VALUES ($1, $2, $3, $4)",
-        [snapshotId, name, s.level, s.xp]
-      )
-    ),
-    ...Object.entries(bosses).map(([name, b]) =>
-      pool.query(
-        // Standardised to snake_case: boss_name
-        "INSERT INTO bosskills (snapshot_id, boss_name, kills, rank) VALUES ($1, $2, $3, $4)",
-        [snapshotId, name, b.kills, b.rank]
-      )
-    ),
-  ]);
-
-  return snapshotId;
 }
 
 // ─── Delta computation ────────────────────────────────────────────────────────
 
-function computeDeltas(current, previous) {
+function computeDeltas(current, prevData) {
+  const prevSkills = prevData?.skills ?? {};
+  const prevBosses = prevData?.bosses ?? {};
+
   const skillsWithDiffs = {};
   const bossesWithDiffs = {};
   let hasChanges = false;
 
   for (const [name, skill] of Object.entries(current.skills)) {
-    const prev = previous.skills[name] ?? { level: 0, xp: 0 };
+    const prev = prevSkills[name] ?? { level: 0, xp: 0 };
     const levelDiff = skill.level - prev.level;
     const xpDiff    = skill.xp    - prev.xp;
     skillsWithDiffs[name] = { ...skill, levelDiff, xpDiff };
@@ -155,7 +107,7 @@ function computeDeltas(current, previous) {
   }
 
   for (const [name, boss] of Object.entries(current.bosses)) {
-    const prev = previous.bosses[name] ?? { kills: 0 };
+    const prev = prevBosses[name] ?? { kills: 0 };
     const killsDiff = boss.kills - prev.kills;
     bossesWithDiffs[name] = { ...boss, killsDiff };
     if (killsDiff !== 0) hasChanges = true;
@@ -165,7 +117,6 @@ function computeDeltas(current, previous) {
 }
 
 // ─── Response shaping ─────────────────────────────────────────────────────────
-// Split bosses vs activities here so the client receives clean, pre-categorised data.
 
 function shapeResponse(username, skills, bosses, cached) {
   const bossesOnly     = {};
@@ -190,15 +141,14 @@ app.get("/api/player/:username", async (req, res) => {
   const username = req.params.username.trim();
 
   try {
-    const playerId      = await getOrCreatePlayer(username);
+    const playerId       = await getOrCreatePlayer(username);
     const latestSnapshot = await getLatestSnapshot(playerId);
 
-    // Return cached snapshot if it's fresh (< 5 minutes old)
+    // Return cached snapshot if fresh (< 5 minutes old)
     if (latestSnapshot) {
       const ageMinutes = (Date.now() - new Date(latestSnapshot.created_at)) / (1000 * 60);
       if (ageMinutes < 5) {
-        const { skills, bosses } = await loadSnapshotData(latestSnapshot.id);
-        // Add zero diffs for cached responses so the client shape is always consistent
+        const { skills, bosses } = latestSnapshot.data;
         const zeroDiffSkills = Object.fromEntries(
           Object.entries(skills).map(([n, s]) => [n, { ...s, levelDiff: 0, xpDiff: 0 }])
         );
@@ -209,20 +159,14 @@ app.get("/api/player/:username", async (req, res) => {
       }
     }
 
-    // Fetch fresh data from OSRS hiscores
+    // Fetch fresh data
     const hiscoreJson = await fetchHiscores(username);
     if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
 
     const current = parseHiscores(hiscoreJson);
+    const { skillsWithDiffs, bossesWithDiffs, hasChanges } = computeDeltas(current, latestSnapshot?.data ?? null);
 
-    // Load previous snapshot data for delta computation
-    const previous = latestSnapshot
-      ? await loadSnapshotData(latestSnapshot.id)
-      : { skills: {}, bosses: {} };
-
-    const { skillsWithDiffs, bossesWithDiffs, hasChanges } = computeDeltas(current, previous);
-
-    // Reuse existing snapshot if nothing has changed
+    // Skip writing a new snapshot if nothing changed
     if (!hasChanges && latestSnapshot) {
       return res.json(shapeResponse(username, skillsWithDiffs, bossesWithDiffs, true));
     }
@@ -242,31 +186,4 @@ app.get("/api/player/:username", async (req, res) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
-
-// ------ Claude Api Call ------- //
-
-app.post('/api/chat', async (req, res) => {
-  const { messages, system } = req.body; // <-- accept system from frontend
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: system || 'You are a helpful OSRS assistant.',
-      messages,
-    }),
-  });
-
-  const data = await response.json();
-  res.json(data);
-});
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
