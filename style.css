@@ -153,6 +153,7 @@ body {
   gap: 20px;
   padding: 20px;
   /*! min-width: 0; */
+<<<<<<< Updated upstream
   background-color: blanchedalmond;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -160,6 +161,8 @@ body {
   border-radius: 5px;
   box-shadow: 10px 10px 70px rgba(0, 0, 0, 1);
   
+=======
+>>>>>>> Stashed changes
 }
 
 .news 
@@ -332,6 +335,7 @@ body {
 
 .chat-input-row button:hover {
   background-color: #2a3f54;
+<<<<<<< Updated upstream
 }
 .tab-container
 {
@@ -347,6 +351,8 @@ body {
 .tab-container .boss-tab
 {
   box-shadow: 1px 2px 5px rgba(0, 0, 0, .4);
+=======
+>>>>>>> Stashed changes
 }
 #player-container h2{
   
