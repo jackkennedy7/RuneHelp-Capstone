@@ -254,8 +254,4 @@ app.post("/api/chat", async (req, res) => {
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
-```
-
-Then in `.env` and Render:
-```
 GEMINI_API_KEY=AIzaSyAtN3V75U2S_-Y0sxbwf9Se0SfjO5dECqc
