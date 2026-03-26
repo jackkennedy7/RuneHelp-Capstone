@@ -61,6 +61,13 @@ const BOSS_NAMES = [
 
 // ─── Hiscore fetching & parsing ───────────────────────────────────────────────
 
+async function fetchHiscores(username) {
+  const url = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`;
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  return response.json();
+}
+
 function parseHiscores(json) {
   const skills = {};
   SKILL_NAMES.forEach((name, i) => {
