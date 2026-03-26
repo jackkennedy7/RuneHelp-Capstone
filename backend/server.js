@@ -28,32 +28,58 @@ const ACTIVITY_NAMES = new Set([
   "Soul Wars Zeal", "Rifts closed", "Colosseum Glory", "Collections Logged"
 ]);
 
-// ─── Hiscore fetching & parsing ───────────────────────────────────────────────
+const SKILL_NAMES = [
+  "Overall","Attack","Defence","Strength","Hitpoints","Ranged","Prayer","Magic","Cooking",
+  "Woodcutting","Fletching","Fishing","Firemaking","Crafting","Smithing","Mining","Herblore",
+  "Agility","Thieving","Slayer","Farming","Runecrafting","Hunter","Construction","Sailing"
+];
 
-async function fetchHiscores(username) {
-  const url = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${encodeURIComponent(username)}`;
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  return response.json();
-}
+const BOSS_NAMES = [
+  "Grid Points","League Points","Deadman Points",
+  "Bounty Hunter - Hunter","Bounty Hunter - Rogue",
+  "Bounty Hunter (Legacy) - Hunter","Bounty Hunter (Legacy) - Rogue",
+  "Clue Scrolls (all)","Clue Scrolls (beginner)","Clue Scrolls (easy)",
+  "Clue Scrolls (medium)","Clue Scrolls (hard)","Clue Scrolls (elite)",
+  "Clue Scrolls (master)","LMS - Rank","PvP Arena - Rank",
+  "Soul Wars Zeal","Rifts closed","Colosseum Glory","Collections Logged",
+  "Abyssal Sire","Alchemical Hydra","Amoxliatl","Araxxor","Artio",
+  "Barrows Chests","Brutus","Bryophyta","Callisto","Calvar'ion",
+  "Cerberus","Chambers of Xeric","Chambers of Xeric: Challenge Mode",
+  "Chaos Elemental","Chaos Fanatic","Commander Zilyana","Corporeal Beast",
+  "Crazy Archaeologist","Dagannoth Prime","Dagannoth Rex","Dagannoth Supreme",
+  "Deranged Archaeologist","Doom of Mokhaiotl","Duke Sucellus","General Graardor",
+  "Giant Mole","Grotesque Guardians","Hespori","Kalphite Queen","King Black Dragon",
+  "Kraken","Kree'Arra","K'ril Tsutsaroth","Lunar Chests","Mimic","Nex",
+  "Nightmare","Phosani's Nightmare","Obor","Phantom Muspah","Sarachnis","Scorpia",
+  "Scurrius","Shellbane Gryphon","Skotizo","Sol Heredit","Spindel","Tempoross",
+  "The Gauntlet","The Corrupted Gauntlet","The Hueycoatl","The Leviathan",
+  "The Royal Titans","The Whisperer","Theatre of Blood","Theatre of Blood: Hard Mode",
+  "Thermonuclear Smoke Devil","Tombs of Amascut","Tombs of Amascut: Expert Mode",
+  "TzKal-Zuk","TzTok-Jad","Vardorvis","Venenatis","Vet'ion","Vorkath",
+  "Wintertodt","Yama","Zalcano","Zulrah"
+];
+
+// ─── Hiscore fetching & parsing ───────────────────────────────────────────────
 
 function parseHiscores(json) {
   const skills = {};
-  for (const [name, data] of Object.entries(json.skills ?? {})) {
+  SKILL_NAMES.forEach((name, i) => {
+    const entry = json.skills?.[i] ?? json.skills?.[String(i)];
     skills[name] = {
-      rank:  data.rank  ?? -1,
-      level: data.level ?? 0,
-      xp:    data.xp    ?? 0,
+      rank:  entry?.rank  ?? -1,
+      level: entry?.level ?? 0,
+      xp:    entry?.xp    ?? 0,
     };
-  }
+  });
 
   const bosses = {};
-  for (const [name, data] of Object.entries(json.activities ?? {})) {
+  BOSS_NAMES.forEach((name, i) => {
+    const entry = json.bosses?.[i] ?? json.bosses?.[String(i)];
     bosses[name] = {
-      rank:  data.rank  ?? -1,
-      kills: data.score ?? 0,
+      rank:  entry?.rank  ?? -1,
+      kills: entry?.kills ?? entry?.score ?? 0,
     };
-  }
+  });
 
   return { skills, bosses };
 }
