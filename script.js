@@ -428,117 +428,135 @@ function renderPlayer(data) {
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
-const chatBubble   = document.getElementById('chatBubble');
-const chatBox      = document.getElementById('chatBox');
-const chatClose    = document.getElementById('chatClose');
-const chatSend     = document.getElementById('chatSend');
-const chatInput    = document.getElementById('chatInput');
+const chatBubble = document.getElementById('chatBubble');
+const chatBox = document.getElementById('chatBox');
+const chatClose = document.getElementById('chatClose');
+const chatSend = document.getElementById('chatSend');
+const chatInput = document.getElementById('chatInput');
 const chatMessages = document.getElementById('chatMessages');
 
-const conversationHistory = [];
-let currentPlayerData = null;
-
+// ─── Event listeners ─────────────────────────────────────
 chatBubble.addEventListener('click', () => chatBox.classList.toggle('open'));
-chatClose.addEventListener('click',  () => chatBox.classList.remove('open'));
+chatClose.addEventListener('click', () => chatBox.classList.remove('open'));
 chatSend.addEventListener('click', sendMessage);
 chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
 
+// ─── State ───────────────────────────────────────────────
+const conversationHistory = [];
+let currentPlayerData = null;
+
+// ─── Helpers ─────────────────────────────────────────────
 function appendMessage(text, role) {
-    const msg = document.createElement('div');
-    msg.classList.add('chat-msg', role);
-    msg.textContent = text;
-    chatMessages.appendChild(msg);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    return msg;
+  const msg = document.createElement('div');
+  msg.classList.add('chat-msg', role);
+  msg.textContent = text;
+  chatMessages.appendChild(msg);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return msg;
 }
 
 function setLoading(isLoading) {
-    chatSend.disabled  = isLoading;
-    chatInput.disabled = isLoading;
+  chatSend.disabled = isLoading;
+  chatInput.disabled = isLoading;
 }
 
+// Looks for lookup intent: "look up X", "check X", "stats for X", or bare name
 function parseIntent(text) {
-    const explicit = text.match(
-        /(?:look\s*up|check|stats\s*for|search|find|show)\s+([A-Za-z0-9 _-]{1,12})/i
-    );
-    if (explicit) return { intent: 'lookup', username: explicit[1].trim() };
-    if (/compare|vs/i.test(text)) return { intent: 'compare' };
-    if (currentPlayerData && /how|why|what|when|best|worst|should|tip|advice/i.test(text))
-        return { intent: 'followup' };
-    if (/^[A-Za-z0-9_-]{2,12}$/.test(text.trim()))
-        return { intent: 'lookup', username: text.trim() };
-    return { intent: 'chat' };
+  const lower = text.toLowerCase();
+  const explicit = text.match(
+    /(?:look\s*up|check|stats\s*for|search|find|show)\s+([A-Za-z0-9 _-]{1,12})/i
+  );
+  if (explicit) return { intent: 'lookup', username: explicit[1].trim() };
+  if (lower.includes('compare') || lower.includes('vs')) return { intent: 'compare' };
+  if (currentPlayerData && /how|why|what|when|best|worst|should|tip|advice/i.test(text))
+    return { intent: 'followup' };
+  // Bare short input with no spaces treated as a username guess
+  if (/^[A-Za-z0-9_-]{2,12}$/.test(text.trim()))
+    return { intent: 'lookup', username: text.trim() };
+  return { intent: 'chat' };
 }
 
+// ─── Fetch player data ────────────────────────────────────
+async function fetchPlayerData(username) {
+  const res = await fetch(
+    `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}?range=${selectedRange}`
+  );
+  if (!res.ok) throw new Error(`Player not found: ${username}`);
+  return res.json();
+}
+
+// ─── Build system prompt ──────────────────────────────────
 function buildSystemPrompt() {
-    const base = `You are RuneHelp, a helpful Old School RuneScape assistant embedded in a player stats app.
-You have access to live player stats fetched from the OSRS hiscores.
+  const base = `You are RuneHelp, a helpful Old School RuneScape assistant embedded in a player stats app.
+You have access to live player stats fetched from the Wise Old Man API.
 - Be concise and friendly. Use OSRS terminology naturally.
 - When stats are provided, lead with the most interesting insight (biggest gain, closest 99, etc.).
 - If asked for advice, tailor it to the player's actual stats.
 - If no player is loaded yet, encourage the user to type a username.
 - Time range context: the stats shown cover the last ${selectedRange}.`;
 
-    if (currentPlayerData) {
-        return `${base}\n\nCurrent player data (JSON):\n${JSON.stringify(currentPlayerData, null, 2)}`;
-    }
-    return base;
+  if (currentPlayerData) {
+    return `${base}\n\nCurrent player data (JSON):\n${JSON.stringify(currentPlayerData, null, 2)}`;
+  }
+  return base;
 }
 
+// ─── Call Claude via your backend ────────────────────────
 async function callClaude(userMessage) {
-    conversationHistory.push({ role: 'user', content: userMessage });
+  conversationHistory.push({ role: 'user', content: userMessage });
 
-    const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            system:   buildSystemPrompt(),
-            messages: conversationHistory,
-        }),
-    });
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: buildSystemPrompt(),
+      messages: conversationHistory,
+    }),
+  });
 
-    if (!res.ok) throw new Error(`Server error: ${res.status}`);
-    const data  = await res.json();
-    const reply = data.content[0].text;
-    conversationHistory.push({ role: 'assistant', content: reply });
-    return reply;
+  if (!res.ok) throw new Error(`Server error: ${res.status}`);
+  const data = await res.json();
+  const reply = data.content[0].text;
+  conversationHistory.push({ role: 'assistant', content: reply });
+  return reply;
 }
 
+// ─── Main send function ───────────────────────────────────
 async function sendMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
+  const text = chatInput.value.trim();
+  if (!text) return;
 
-    appendMessage(text, 'user');
-    chatInput.value = '';
-    setLoading(true);
-    const typingMsg = appendMessage('…', 'bot');
+  appendMessage(text, 'user');
+  chatInput.value = '';
+  setLoading(true);
+  const typingMsg = appendMessage('…', 'bot');
 
-    try {
-        const { intent, username } = parseIntent(text);
+  try {
+    const { intent, username } = parseIntent(text);
 
-        if (intent === 'lookup' && username) {
-            typingMsg.textContent = `Looking up ${username}…`;
-            const res = await fetch(
-                `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}?range=${selectedRange}`
-            );
-            if (!res.ok) throw new Error(`Player not found: ${username}`);
-            currentPlayerData = await res.json();
+    if (intent === 'lookup' && username) {
+      typingMsg.textContent = `Looking up ${username}…`;
+      currentPlayerData = await fetchPlayerData(username);
 
-            const reply = await callClaude(
-                `I just looked up "${username}". Here are their stats for the last ${selectedRange}. Give me a friendly summary with the highlights.`
-            );
-            typingMsg.textContent = reply;
-        } else {
-            const reply = await callClaude(text);
-            typingMsg.textContent = reply;
-        }
-    } catch (err) {
-        typingMsg.textContent = err.message.startsWith('Player not found')
-            ? `Couldn't find that player. Check the username and try again.`
-            : 'Something went wrong. Please try again.';
-        console.error(err);
-    } finally {
-        setLoading(false);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+      const reply = await callClaude(
+        `I just looked up "${username}". Here are their stats for the last ${selectedRange}. Give me a friendly summary with the highlights.`
+      );
+      typingMsg.textContent = reply;
+
+    } else {
+      const reply = await callClaude(text);
+      typingMsg.textContent = reply;
     }
+
+  } catch (err) {
+    if (err.message.startsWith('Player not found')) {
+      typingMsg.textContent = `Couldn't find that player. Check the username and try again.`;
+    } else {
+      typingMsg.textContent = 'Something went wrong. Please try again.';
+    }
+    console.error(err);
+  } finally {
+    setLoading(false);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
 }
