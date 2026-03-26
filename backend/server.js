@@ -76,21 +76,21 @@ function parseHiscores(json) {
     };
   });
 
-  // Activities (indexed)
+  // Activities (indexed) — map score → kills
   ACTIVITY_NAMES.forEach((name, i) => {
     const entry = json.activities?.[i];
     activities[name] = {
       rank: entry?.rank ?? -1,
-      score: entry?.score ?? 0,
+      kills: entry?.score ?? 0,
     };
   });
 
-  // Bosses (keyed by name)
+  // Bosses (keyed by name) — always use score → kills
   BOSS_NAMES.forEach((name) => {
     const entry = json.bosses?.[name];
     bosses[name] = {
       rank: entry?.rank ?? -1,
-      kills: entry?.kills ?? entry?.score ?? 0,
+      kills: entry?.score ?? 0,
     };
   });
 
@@ -158,11 +158,14 @@ function computeDeltas(current, prevData) {
   }
 
   for (const [name, activity] of Object.entries(current.activities)) {
-    const prev = prevActivities[name] ?? { score: 0 };
-    const scoreDiff = activity.score - prev.score;
+    const prev = prevActivities[name] ?? { kills: 0 };
+    const killsDiff = activity.kills - prev.kills;
 
-    activitiesWithDiffs[name] = { ...activity, scoreDiff };
-    if (scoreDiff !== 0) hasChanges = true;
+    activitiesWithDiffs[name] = {
+      ...activity,
+      killsDiff
+    };
+    if (killsDiff !== 0) hasChanges = true;
   }
 
   return { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs, hasChanges };
@@ -194,7 +197,7 @@ app.get("/api/player/:username", async (req, res) => {
         );
 
         const zeroActivities = Object.fromEntries(
-          Object.entries(activities).map(([n, a]) => [n, { ...a, scoreDiff: 0 }])
+          Object.entries(activities).map(([n, a]) => [n, { ...a, killsDiff: 0 }])
         );
 
         return res.json({
