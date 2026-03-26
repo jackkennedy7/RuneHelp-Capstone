@@ -210,12 +210,12 @@ body {
 }
 
 .chat-bubble {
-  width: 75px;
-  height: 75px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
-  background-color: rgba(237, 231, 219, 0.9);
+  background-color: rgba(240, 255, 245, 0.9);
   border: 3px solid #8b4513;
-  color: #aa6f45;
+  color: #8b4513;
   font-size: 1.6rem;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
