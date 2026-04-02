@@ -348,6 +348,7 @@ function renderActivitiesTab(data, contentContainer) {
 // ─── Player render ────────────────────────────────────────────────────────────
 
 function renderPlayer(data) {
+    document.getElementById('welcome-banner').style.display = 'none'; //hide welcome page
     data = normalizePlayerData(data);
     playerContainer.innerHTML = "";
 
@@ -558,3 +559,11 @@ async function sendMessage() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 }
+
+// welcome page comes back on refresh
+searchInput.addEventListener('input', () => {
+    if (searchInput.value.trim() === '') {
+        playerContainer.innerHTML = '';
+        document.getElementById('welcome-banner').style.display = 'block';
+    }
+});

@@ -70,7 +70,6 @@ body {
   
 }
 
-/* Add these new header styles: */
 .site-header {
   display: flex;
   align-items: center;
@@ -145,6 +144,25 @@ body {
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-size: 100% 100%;
+}
+#welcome-banner {
+    text-align: center;
+    padding: 48px 24px;
+    color: #c8a96e;
+    border: 1px solid #3a3020;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+}
+
+#welcome-banner h2 {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+}
+
+#welcome-banner p {
+    color: #aaa;
+    font-size: 1rem;
 }
 .content-col {
   flex: 1;
