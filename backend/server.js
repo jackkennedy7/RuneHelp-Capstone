@@ -18,7 +18,7 @@ const pool = new Pool({
 
 // ─── Domain constants ─────────────────────────────────────────────────────────
 
-const ACTIVITY_NAMES = new Set([
+const ACTIVITY_NAMES = [
   "Grid Points", "League Points", "Deadman Points",
   "Bounty Hunter - Hunter", "Bounty Hunter - Rogue",
   "Bounty Hunter (Legacy) - Hunter", "Bounty Hunter (Legacy) - Rogue",
@@ -26,7 +26,7 @@ const ACTIVITY_NAMES = new Set([
   "Clue Scrolls (medium)", "Clue Scrolls (hard)", "Clue Scrolls (elite)",
   "Clue Scrolls (master)", "LMS - Rank", "PvP Arena - Rank",
   "Soul Wars Zeal", "Rifts closed", "Colosseum Glory", "Collections Logged"
-]);
+];
 
 const SKILL_NAMES = [
   "Overall","Attack","Defence","Strength","Hitpoints","Ranged","Prayer","Magic","Cooking",
@@ -35,13 +35,6 @@ const SKILL_NAMES = [
 ];
 
 const BOSS_NAMES = [
-  "Grid Points","League Points","Deadman Points",
-  "Bounty Hunter - Hunter","Bounty Hunter - Rogue",
-  "Bounty Hunter (Legacy) - Hunter","Bounty Hunter (Legacy) - Rogue",
-  "Clue Scrolls (all)","Clue Scrolls (beginner)","Clue Scrolls (easy)",
-  "Clue Scrolls (medium)","Clue Scrolls (hard)","Clue Scrolls (elite)",
-  "Clue Scrolls (master)","LMS - Rank","PvP Arena - Rank",
-  "Soul Wars Zeal","Rifts closed","Colosseum Glory","Collections Logged",
   "Abyssal Sire","Alchemical Hydra","Amoxliatl","Araxxor","Artio",
   "Barrows Chests","Brutus","Bryophyta","Callisto","Calvar'ion",
   "Cerberus","Chambers of Xeric","Chambers of Xeric: Challenge Mode",
@@ -70,25 +63,37 @@ async function fetchHiscores(username) {
 
 function parseHiscores(json) {
   const skills = {};
-  SKILL_NAMES.forEach((name, i) => {
-    const entry = json.skills?.[i] ?? json.skills?.[String(i)];
-    skills[name] = {
-      rank:  entry?.rank  ?? -1,
-      level: entry?.level ?? 0,
-      xp:    entry?.xp    ?? 0,
-    };
-  });
-
   const bosses = {};
-  BOSS_NAMES.forEach((name, i) => {
-    const entry = json.bosses?.[i] ?? json.bosses?.[String(i)];
-    bosses[name] = {
-      rank:  entry?.rank  ?? -1,
-      kills: entry?.kills ?? entry?.score ?? 0,
+  const activities = {};
+
+  SKILL_NAMES.forEach((name, i) => {
+    const entry = json.skills?.[i];
+    skills[name] = {
+      rank: entry?.rank ?? -1,
+      level: entry?.level ?? 0,
+      xp: entry?.xp ?? 0,
     };
   });
 
-  return { skills, bosses };
+  // Activities are indices 0–19
+  ACTIVITY_NAMES.forEach((name, i) => {
+    const entry = json.activities?.[i];
+    activities[name] = {
+      rank: entry?.rank ?? -1,
+      score: entry?.score ?? 0,
+    };
+  });
+
+  // Bosses are indices 20+ in the same activities array
+  BOSS_NAMES.forEach((name, i) => {
+    const entry = json.activities?.[ACTIVITY_NAMES.length + i];
+    bosses[name] = {
+      rank: entry?.rank ?? -1,
+      kills: entry?.score ?? 0,
+    };
+  });
+
+  return { skills, bosses, activities };
 }
 
 // ─── Database helpers ─────────────────────────────────────────────────────────
@@ -114,10 +119,10 @@ async function getLatestSnapshot(playerId) {
   return result.rows[0] ?? null;
 }
 
-async function insertSnapshot(playerId, skills, bosses) {
+async function insertSnapshot(playerId, skills, bosses, activities) {
   await pool.query(
     `INSERT INTO snapshots (player_id, data) VALUES ($1, $2)`,
-    [playerId, JSON.stringify({ skills, bosses })]
+    [playerId, JSON.stringify({ skills, bosses, activities })]
   );
 }
 
@@ -126,15 +131,19 @@ async function insertSnapshot(playerId, skills, bosses) {
 function computeDeltas(current, prevData) {
   const prevSkills = prevData?.skills ?? {};
   const prevBosses = prevData?.bosses ?? {};
+  const prevActivities = prevData?.activities ?? {};
 
   const skillsWithDiffs = {};
   const bossesWithDiffs = {};
+  const activitiesWithDiffs = {};
+
   let hasChanges = false;
 
   for (const [name, skill] of Object.entries(current.skills)) {
     const prev = prevSkills[name] ?? { level: 0, xp: 0 };
     const levelDiff = skill.level - prev.level;
-    const xpDiff    = skill.xp    - prev.xp;
+    const xpDiff = skill.xp - prev.xp;
+
     skillsWithDiffs[name] = { ...skill, levelDiff, xpDiff };
     if (levelDiff !== 0 || xpDiff !== 0) hasChanges = true;
   }
@@ -142,28 +151,19 @@ function computeDeltas(current, prevData) {
   for (const [name, boss] of Object.entries(current.bosses)) {
     const prev = prevBosses[name] ?? { kills: 0 };
     const killsDiff = boss.kills - prev.kills;
+
     bossesWithDiffs[name] = { ...boss, killsDiff };
     if (killsDiff !== 0) hasChanges = true;
   }
 
-  return { skillsWithDiffs, bossesWithDiffs, hasChanges };
-}
-
-// ─── Response shaping ─────────────────────────────────────────────────────────
-
-function shapeResponse(username, skills, bosses, cached) {
-  const bossesOnly     = {};
-  const activitiesOnly = {};
-
-  for (const [name, data] of Object.entries(bosses)) {
-    if (ACTIVITY_NAMES.has(name)) {
-      activitiesOnly[name] = data;
-    } else {
-      bossesOnly[name] = data;
-    }
+  for (const [name, activity] of Object.entries(current.activities)) {
+    const prev = prevActivities[name] ?? { score: 0 };
+    const scoreDiff = activity.score - prev.score;
+    activitiesWithDiffs[name] = { ...activity, scoreDiff };
+    if (scoreDiff !== 0) hasChanges = true;
   }
 
-  return { username, skills, bosses: bossesOnly, activities: activitiesOnly, cached };
+  return { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs, hasChanges };
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -174,40 +174,67 @@ app.get("/api/player/:username", async (req, res) => {
   const username = req.params.username.trim();
 
   try {
-    const playerId       = await getOrCreatePlayer(username);
+    const playerId = await getOrCreatePlayer(username);
     const latestSnapshot = await getLatestSnapshot(playerId);
 
-    // Return cached snapshot if fresh (< 5 minutes old)
     if (latestSnapshot) {
       const ageMinutes = (Date.now() - new Date(latestSnapshot.created_at)) / (1000 * 60);
+
       if (ageMinutes < 5) {
-        const { skills, bosses } = latestSnapshot.data;
-        const zeroDiffSkills = Object.fromEntries(
+        const { skills, bosses, activities } = latestSnapshot.data;
+
+        const zeroSkills = Object.fromEntries(
           Object.entries(skills).map(([n, s]) => [n, { ...s, levelDiff: 0, xpDiff: 0 }])
         );
-        const zeroDiffBosses = Object.fromEntries(
+
+        const zeroBosses = Object.fromEntries(
           Object.entries(bosses).map(([n, b]) => [n, { ...b, killsDiff: 0 }])
         );
-        return res.json(shapeResponse(username, zeroDiffSkills, zeroDiffBosses, true));
+
+        const zeroActivities = Object.fromEntries(
+          Object.entries(activities).map(([n, a]) => [n, { ...a, scoreDiff: 0 }])
+        );
+
+        return res.json({
+          username,
+          skills: zeroSkills,
+          bosses: zeroBosses,
+          activities: zeroActivities,
+          cached: true,
+        });
       }
     }
 
-    // Fetch fresh data
     const hiscoreJson = await fetchHiscores(username);
     if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
 
     const current = parseHiscores(hiscoreJson);
-    const { skillsWithDiffs, bossesWithDiffs, hasChanges } = computeDeltas(current, latestSnapshot?.data ?? null);
 
-    // Skip writing a new snapshot if nothing changed
+    const {
+      skillsWithDiffs,
+      bossesWithDiffs,
+      activitiesWithDiffs,
+      hasChanges
+    } = computeDeltas(current, latestSnapshot?.data ?? null);
+
     if (!hasChanges && latestSnapshot) {
-      return res.json(shapeResponse(username, skillsWithDiffs, bossesWithDiffs, true));
+      return res.json({
+        username,
+        skills: skillsWithDiffs,
+        bosses: bossesWithDiffs,
+        activities: activitiesWithDiffs,
+        cached: true,
+      });
     }
 
-    await insertSnapshot(playerId, current.skills, current.bosses);
+    await insertSnapshot(playerId, current.skills, current.bosses, current.activities);
 
     return res.json({
-      ...shapeResponse(username, skillsWithDiffs, bossesWithDiffs, false),
+      username,
+      skills: skillsWithDiffs,
+      bosses: bossesWithDiffs,
+      activities: activitiesWithDiffs,
+      cached: false,
       hasPreviousSnapshot: !!latestSnapshot,
     });
 
@@ -216,39 +243,6 @@ app.get("/api/player/:username", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-app.post("/api/chat", async (req, res) => {
-  const { messages, system } = req.body;
-
-  const geminiMessages = messages.map(m => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: system || "You are a helpful OSRS assistant." }] },
-        contents: geminiMessages,
-      }),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error("Gemini error:", data);
-    return res.status(response.status).json({ error: data.error?.message ?? "Gemini API error" });
-  }
-
-  // Reshape to match the Anthropic format your frontend expects
-  const text = data.candidates[0].content.parts[0].text;
-  res.json({ content: [{ text }] });
-});
-
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 

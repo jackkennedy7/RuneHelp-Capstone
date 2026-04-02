@@ -86,13 +86,14 @@ function normalizePlayerData(data) {
     }
 
     for (const [name, info] of Object.entries(data.activities ?? {})) {
-        const kills = Number(info.kills ?? 0);
+        const score = Number(info.score ?? 0);
         normalized.activities[name] = {
-            kills:     kills === -1 ? 0 : kills,
-            rank:      Number(info.rank ?? -1),
-            killsDiff: Number(info.killsDiff ?? 0)
+            score: score === -1 ? 0 : score,
+            rank: Number(info.rank ?? -1),
+            scoreDiff: Number(info.scoreDiff ?? 0)
         };
     }
+
 
     return normalized;
 }
@@ -174,15 +175,22 @@ const BOSS_COLUMNS = [
 const ACTIVITY_COLUMNS = [
     {
         header: "Activity",
-        render: ([name])   => capitalize(name)
+        render: ([name]) => capitalize(name)
     },
     {
         header: "Score",
-        render: ([, info]) => `<span title="${formatNumber(info.kills)}">${formatAbbrev(info.kills)}</span>`
+        render: ([, info]) => `<span title="${formatNumber(info.score)}">${formatAbbrev(info.score)}</span>`
     },
     {
         header: "Rank",
         render: ([, info]) => info.rank === -1 ? "--" : formatNumber(info.rank)
+    },
+    {
+        header: "Δ Score",
+        render: ([, info]) => {
+            const d = info.scoreDiff ?? 0;
+            return `<span style="color:${getDiffColor(d)}" title="${formatNumber(d)}">${formatDiff(d)}</span>`;
+        }
     },
 ];
 
