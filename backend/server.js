@@ -66,7 +66,6 @@ function parseHiscores(json) {
   const bosses = {};
   const activities = {};
 
-  // Skills (indexed)
   SKILL_NAMES.forEach((name, i) => {
     const entry = json.skills?.[i];
     skills[name] = {
@@ -76,7 +75,7 @@ function parseHiscores(json) {
     };
   });
 
-  // Activities (indexed) — map score → kills
+  // Activities are indices 0–19
   ACTIVITY_NAMES.forEach((name, i) => {
     const entry = json.activities?.[i];
     activities[name] = {
@@ -85,12 +84,12 @@ function parseHiscores(json) {
     };
   });
 
-  // Bosses (keyed by name) — always use score → kills
+  // Bosses are indices 20+ in the same activities array
   BOSS_NAMES.forEach((name, i) => {
-    const entry = json.bosses?.[i];  // index, not name
+    const entry = json.activities?.[ACTIVITY_NAMES.length + i];
     bosses[name] = {
-        rank: entry?.rank ?? -1,
-        kills: entry?.score ?? 0,
+      rank: entry?.rank ?? -1,
+      kills: entry?.score ?? 0,
     };
   });
 
