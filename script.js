@@ -77,6 +77,7 @@ function normalizePlayerData(data) {
     }
 
     for (const [name, info] of Object.entries(data.bosses ?? {})) {
+        console.log(name, info);
         const kills = Number(info.kills ?? 0);
         normalized.bosses[name] = {
             kills:     kills === -1 ? 0 : kills,
