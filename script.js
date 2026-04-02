@@ -508,26 +508,6 @@ You have access to live player stats fetched from the Wise Old Man API.
   return base;
 }
 
-// ─── Call Gemini via backend ──────────────────────────────
-async function callGemini(userMessage) {
-  conversationHistory.push({ role: 'user', content: userMessage });
-
-  const res = await fetch('https://runehelp.onrender.com/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system: buildSystemPrompt(),
-      messages: conversationHistory,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Server error: ${res.status}`);
-  const data = await res.json();
-  const reply = data.content[0].text;
-  conversationHistory.push({ role: 'assistant', content: reply });
-  return reply;
-}
-
 // ─── Main send function ───────────────────────────────────
 async function sendMessage() {
   const text = chatInput.value.trim();
