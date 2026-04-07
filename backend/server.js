@@ -244,25 +244,34 @@ app.get("/api/player/:username", async (req, res) => {
   }
 });
 
-// ─── Call Gemini via backend ──────────────────────────────
-async function callGemini(userMessage) {
-  conversationHistory.push({ role: 'user', content: userMessage });
+app.post("/api/chat", async (req, res) => {
+  const { system, messages } = req.body;
 
-  const res = await fetch('https://runehelp.onrender.com/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system: buildSystemPrompt(),
-      messages: conversationHistory,
-    }),
-  });
+  const geminiMessages = messages.map(m => ({
+    role: m.role === "bot" ? "model" : "user",
+    parts: [{ text: m.content }]
+  }));
 
-  if (!res.ok) throw new Error(`Server error: ${res.status}`);
-  const data = await res.json();
-  const reply = data.content[0].text;
-  conversationHistory.push({ role: 'assistant', content: reply });
-  return reply;
-}
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: system }] },
+        contents: geminiMessages
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    return res.status(500).json({ error: err });
+  }
+
+  const data = await response.json();
+  res.json(data);
+});
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
