@@ -148,7 +148,7 @@ body {
 #welcome-banner {
     text-align: center;
     padding: 48px 24px;
-    color: #c8a96e;
+    color: #cda14f;
     border: 1px solid #3a3020;
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.2);
@@ -161,7 +161,7 @@ body {
 }
 
 #welcome-banner p {
-    color: #aaa;
+    color: #e8e8e8;
     font-size: 1rem;
 }
 .content-col {
