@@ -358,6 +358,7 @@ function renderActivitiesTab(data, contentContainer) {
 function renderPlayer(data) {
     document.getElementById('welcome-banner').style.display = 'none'; //hide welcome page
     data = normalizePlayerData(data);
+    currentPlayerData = data;
     playerContainer.innerHTML = "";
 
     if (!data || !data.skills) {
@@ -476,8 +477,7 @@ function parseIntent(text) {
   );
   if (explicit) return { intent: 'lookup', username: explicit[1].trim() };
   if (lower.includes('compare') || lower.includes('vs')) return { intent: 'compare' };
-  if (currentPlayerData && /how|why|what|when|best|worst|should|tip|advice/i.test(text))
-    return { intent: 'followup' };
+  if (currentPlayerData) return { intent: 'followup' };  // ← REPLACE the old followup check
   if (/^[A-Za-z0-9_-]{2,12}$/.test(text.trim()))
     return { intent: 'lookup', username: text.trim() };
   return { intent: 'chat' };
@@ -496,9 +496,11 @@ async function fetchPlayerData(username) {
 function buildSystemPrompt() {
   const base = `You are RuneHelp, a helpful Old School RuneScape assistant embedded in a player stats app.
 You have access to live player stats fetched from the Wise Old Man API.
-- Be concise and friendly. Use OSRS terminology naturally.
-- When stats are provided, lead with the most interesting insight (biggest gain, closest 99, etc.).
-- If asked for advice, tailor it to the player's actual stats.
+- Keep responses short and conversational — 2 to 6 sentences max.
+- Never use markdown formatting. No bold, no bullet points, no asterisks.
+- Use plain sentences only.
+- Use OSRS terminology naturally.
+- When stats are provided, give a few highlights only.
 - If no player is loaded yet, encourage the user to type a username.
 - Time range context: the stats shown cover the last ${selectedRange}.`;
 
