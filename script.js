@@ -66,6 +66,101 @@ const SKILL_ICONS = {
   "Sailing":       "https://oldschool.runescape.wiki/images/Sailing_icon.png",
 };
 
+const ACTIVITY_ICONS = {
+  "Grid Points":                    "https://oldschool.runescape.wiki/images/Shattered_Relics_League_icon.png",
+  "League Points":                  "https://oldschool.runescape.wiki/images/League_Points_icon.png",
+  "Deadman Points":                 "https://oldschool.runescape.wiki/images/Deadman_icon.png",
+  "Bounty Hunter - Hunter":         "https://oldschool.runescape.wiki/images/Bounty_hunter_icon.png",
+  "Bounty Hunter - Rogue":          "https://oldschool.runescape.wiki/images/Bounty_hunter_icon.png",
+  "Bounty Hunter (Legacy) - Hunter":"https://oldschool.runescape.wiki/images/Bounty_hunter_icon.png",
+  "Bounty Hunter (Legacy) - Rogue": "https://oldschool.runescape.wiki/images/Bounty_hunter_icon.png",
+  "Clue Scrolls (all)":             "https://oldschool.runescape.wiki/images/Clue_scroll_%28all%29_icon.png",
+  "Clue Scrolls (beginner)":        "https://oldschool.runescape.wiki/images/Clue_scroll_%28beginner%29_icon.png",
+  "Clue Scrolls (easy)":            "https://oldschool.runescape.wiki/images/Clue_scroll_%28easy%29_icon.png",
+  "Clue Scrolls (medium)":          "https://oldschool.runescape.wiki/images/Clue_scroll_%28medium%29_icon.png",
+  "Clue Scrolls (hard)":            "https://oldschool.runescape.wiki/images/Clue_scroll_%28hard%29_icon.png",
+  "Clue Scrolls (elite)":           "https://oldschool.runescape.wiki/images/Clue_scroll_%28elite%29_icon.png",
+  "Clue Scrolls (master)":          "https://oldschool.runescape.wiki/images/Clue_scroll_%28master%29_icon.png",
+  "LMS - Rank":                     "https://oldschool.runescape.wiki/images/Last_Man_Standing_icon.png",
+  "PvP Arena - Rank":               "https://oldschool.runescape.wiki/images/PvP_Arena_icon.png",
+  "Soul Wars Zeal":                 "https://oldschool.runescape.wiki/images/Zeal_icon.png",
+  "Rifts closed":                   "https://oldschool.runescape.wiki/images/Guardians_of_the_Rift_icon.png",
+  "Colosseum Glory":                "https://oldschool.runescape.wiki/images/Colosseum_icon.png",
+  "Collections Logged":             "https://oldschool.runescape.wiki/images/Collection_log_icon.png",
+};
+
+const BOSS_ICONS = {
+  "Abyssal Sire":                        "https://oldschool.runescape.wiki/images/Abyssal_Sire_icon.png",
+  "Alchemical Hydra":                    "https://oldschool.runescape.wiki/images/Alchemical_Hydra_icon.png",
+  "Amoxliatl":                           "https://oldschool.runescape.wiki/images/Amoxliatl_icon.png",
+  "Araxxor":                             "https://oldschool.runescape.wiki/images/Araxxor_icon.png",
+  "Artio":                               "https://oldschool.runescape.wiki/images/Artio_icon.png",
+  "Barrows Chests":                      "https://oldschool.runescape.wiki/images/Barrows_icon.png",
+  "Brutus":                              "https://oldschool.runescape.wiki/images/Brutus_icon.png",
+  "Bryophyta":                           "https://oldschool.runescape.wiki/images/Bryophyta_icon.png",
+  "Callisto":                            "https://oldschool.runescape.wiki/images/Callisto_icon.png",
+  "Calvar'ion":                          "https://oldschool.runescape.wiki/images/Calvar%27ion_icon.png",
+  "Cerberus":                            "https://oldschool.runescape.wiki/images/Cerberus_icon.png",
+  "Chambers of Xeric":                   "https://oldschool.runescape.wiki/images/Chambers_of_Xeric_icon.png",
+  "Chambers of Xeric: Challenge Mode":   "https://oldschool.runescape.wiki/images/Chambers_of_Xeric_icon.png",
+  "Chaos Elemental":                     "https://oldschool.runescape.wiki/images/Chaos_Elemental_icon.png",
+  "Chaos Fanatic":                       "https://oldschool.runescape.wiki/images/Chaos_Fanatic_icon.png",
+  "Commander Zilyana":                   "https://oldschool.runescape.wiki/images/Commander_Zilyana_icon.png",
+  "Corporeal Beast":                     "https://oldschool.runescape.wiki/images/Corporeal_Beast_icon.png",
+  "Crazy Archaeologist":                 "https://oldschool.runescape.wiki/images/Crazy_Archaeologist_icon.png",
+  "Dagannoth Prime":                     "https://oldschool.runescape.wiki/images/Dagannoth_Prime_icon.png",
+  "Dagannoth Rex":                       "https://oldschool.runescape.wiki/images/Dagannoth_Rex_icon.png",
+  "Dagannoth Supreme":                   "https://oldschool.runescape.wiki/images/Dagannoth_Supreme_icon.png",
+  "Deranged Archaeologist":              "https://oldschool.runescape.wiki/images/Deranged_Archaeologist_icon.png",
+  "Doom of Mokhaiotl":                   "https://oldschool.runescape.wiki/images/Doom_of_Mokhaiotl_icon.png",
+  "Duke Sucellus":                       "https://oldschool.runescape.wiki/images/Duke_Sucellus_icon.png",
+  "General Graardor":                    "https://oldschool.runescape.wiki/images/General_Graardor_icon.png",
+  "Giant Mole":                          "https://oldschool.runescape.wiki/images/Giant_Mole_icon.png",
+  "Grotesque Guardians":                 "https://oldschool.runescape.wiki/images/Grotesque_Guardians_icon.png",
+  "Hespori":                             "https://oldschool.runescape.wiki/images/Hespori_icon.png",
+  "Kalphite Queen":                      "https://oldschool.runescape.wiki/images/Kalphite_Queen_icon.png",
+  "King Black Dragon":                   "https://oldschool.runescape.wiki/images/King_Black_Dragon_icon.png",
+  "Kraken":                              "https://oldschool.runescape.wiki/images/Kraken_icon.png",
+  "Kree'Arra":                           "https://oldschool.runescape.wiki/images/Kree%27Arra_icon.png",
+  "K'ril Tsutsaroth":                    "https://oldschool.runescape.wiki/images/K%27ril_Tsutsaroth_icon.png",
+  "Lunar Chests":                        "https://oldschool.runescape.wiki/images/Lunar_Chests_icon.png",
+  "Mimic":                               "https://oldschool.runescape.wiki/images/Mimic_icon.png",
+  "Nex":                                 "https://oldschool.runescape.wiki/images/Nex_icon.png",
+  "Nightmare":                           "https://oldschool.runescape.wiki/images/The_Nightmare_icon.png",
+  "Phosani's Nightmare":                 "https://oldschool.runescape.wiki/images/Phosani%27s_Nightmare_icon.png",
+  "Obor":                                "https://oldschool.runescape.wiki/images/Obor_icon.png",
+  "Phantom Muspah":                      "https://oldschool.runescape.wiki/images/Phantom_Muspah_icon.png",
+  "Sarachnis":                           "https://oldschool.runescape.wiki/images/Sarachnis_icon.png",
+  "Scorpia":                             "https://oldschool.runescape.wiki/images/Scorpia_icon.png",
+  "Scurrius":                            "https://oldschool.runescape.wiki/images/Scurrius_icon.png",
+  "Shellbane Gryphon":                   "https://oldschool.runescape.wiki/images/Shellbane_Gryphon_icon.png",
+  "Skotizo":                             "https://oldschool.runescape.wiki/images/Skotizo_icon.png",
+  "Sol Heredit":                         "https://oldschool.runescape.wiki/images/Sol_Heredit_icon.png",
+  "Spindel":                             "https://oldschool.runescape.wiki/images/Spindel_icon.png",
+  "Tempoross":                           "https://oldschool.runescape.wiki/images/Tempoross_icon.png",
+  "The Gauntlet":                        "https://oldschool.runescape.wiki/images/Gauntlet_icon.png",
+  "The Corrupted Gauntlet":              "https://oldschool.runescape.wiki/images/Corrupted_Gauntlet_icon.png",
+  "The Hueycoatl":                       "https://oldschool.runescape.wiki/images/The_Hueycoatl_icon.png",
+  "The Leviathan":                       "https://oldschool.runescape.wiki/images/The_Leviathan_icon.png",
+  "The Royal Titans":                    "https://oldschool.runescape.wiki/images/The_Royal_Titans_icon.png",
+  "The Whisperer":                       "https://oldschool.runescape.wiki/images/The_Whisperer_icon.png",
+  "Theatre of Blood":                    "https://oldschool.runescape.wiki/images/Theatre_of_Blood_icon.png",
+  "Theatre of Blood: Hard Mode":         "https://oldschool.runescape.wiki/images/Theatre_of_Blood_icon.png",
+  "Thermonuclear Smoke Devil":           "https://oldschool.runescape.wiki/images/Thermonuclear_Smoke_Devil_icon.png",
+  "Tombs of Amascut":                    "https://oldschool.runescape.wiki/images/Tombs_of_Amascut_icon.png",
+  "Tombs of Amascut: Expert Mode":       "https://oldschool.runescape.wiki/images/Tombs_of_Amascut_icon.png",
+  "TzKal-Zuk":                           "https://oldschool.runescape.wiki/images/TzKal-Zuk_icon.png",
+  "TzTok-Jad":                           "https://oldschool.runescape.wiki/images/TzTok-Jad_icon.png",
+  "Vardorvis":                           "https://oldschool.runescape.wiki/images/Vardorvis_icon.png",
+  "Venenatis":                           "https://oldschool.runescape.wiki/images/Venenatis_icon.png",
+  "Vet'ion":                             "https://oldschool.runescape.wiki/images/Vet%27ion_icon.png",
+  "Vorkath":                             "https://oldschool.runescape.wiki/images/Vorkath_icon.png",
+  "Wintertodt":                          "https://oldschool.runescape.wiki/images/Wintertodt_icon.png",
+  "Yama":                                "https://oldschool.runescape.wiki/images/Yama_icon.png",
+  "Zalcano":                             "https://oldschool.runescape.wiki/images/Zalcano_icon.png",
+  "Zulrah":                              "https://oldschool.runescape.wiki/images/Zulrah_icon.png",
+};
+
 searchButton.addEventListener('click', searchPlayer);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
 
@@ -219,7 +314,7 @@ function createPaginatedTable(entries, page, onPageChange, columns) {
 const BOSS_COLUMNS = [
     {
         header: "Name",
-        render: ([name])   => capitalize(name)
+        render: ([name]) => `${renderIcon(BOSS_ICONS, name)}${capitalize(name)}`
     },
     {
         header: "Rank",
@@ -241,7 +336,7 @@ const BOSS_COLUMNS = [
 const ACTIVITY_COLUMNS = [
     {
         header: "Activity",
-        render: ([name]) => capitalize(name)
+        render: ([name]) => `${renderIcon(ACTIVITY_ICONS, name)}${capitalize(name)}`
     },
     {
         header: "Score",
@@ -905,3 +1000,9 @@ searchInput.addEventListener('input', () => {
         document.getElementById('welcome-banner').style.display = 'block';
     }
 });
+
+function renderIcon(iconMap, name) {
+  const url = iconMap[name];
+  if (!url) return "";
+  return `<img src="${url}" alt="${name}" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;" onerror="this.style.display='none'">`;
+}
