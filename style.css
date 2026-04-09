@@ -456,13 +456,22 @@ body {
 
 /* ── GE table ── */
 #ge-table-container {
+    background: lightgray;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #3a3020;
     margin-bottom: 20px;
     overflow-x: auto;
 }
 
 #ge-chart-container {
-    background: rgba(0,0,0,0.2);
+    background: lightgray;
     border: 1px solid #3a3020;
     border-radius: 8px;
     padding: 16px;
+}
+
+.stats-table
+{
+  width: 100%;
 }

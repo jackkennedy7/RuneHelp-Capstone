@@ -765,7 +765,13 @@ geSearchInput.addEventListener('input', async () => {
     const query = geSearchInput.value.trim().toLowerCase();
     geDropdown.innerHTML = "";
 
-    if (!query) { geDropdown.style.display = 'none'; return; }
+    if (!query) 
+        {
+            geDropdown.style.display = 'none';
+            geItems = [...DEFAULT_ITEMS];  // ← restore defaults when cleared
+            await loadGE();
+            return; 
+        }
 
     await loadItemMapping();
 
@@ -782,8 +788,8 @@ geSearchInput.addEventListener('input', async () => {
             geSearchInput.value    = item.name;
             geDropdown.style.display = 'none';
 
-            // Replace first item in list with searched item and reload
-            geItems[0] = { id: item.id, name: item.name };
+            //update table for one searched item
+            geItems = [{ id: item.id, name: item.name }];
             await loadGE();
         });
         geDropdown.appendChild(li);
