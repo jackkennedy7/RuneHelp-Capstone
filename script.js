@@ -3,6 +3,7 @@ const searchInput  = document.getElementById('searchInput');
 const playerContainer = document.getElementById('player-container');
 
 let selectedRange = "1d";
+let cachedPlayerData = null;
 
 searchButton.addEventListener('click', searchPlayer);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
@@ -11,6 +12,7 @@ async function searchPlayer() {
     const username = searchInput.value.trim();
     if (!username) { alert('Please enter a username'); return; }
 
+    cachedPlayerData = null;
     playerContainer.innerHTML = "<p>Loading...</p>";
 
     try {
@@ -357,7 +359,9 @@ function renderActivitiesTab(data, contentContainer) {
 // ─── Player render ────────────────────────────────────────────────────────────
 
 function renderPlayer(data) {
-    document.getElementById('welcome-banner').style.display = 'none'; //hide welcome page
+    document.getElementById('welcome-banner').style.display = 'none';
+    cachedPlayerData = data;
+    const normalizedData = normalizePlayerData(data);
     data = normalizePlayerData(data);
     currentPlayerData = data;
     playerContainer.innerHTML = "";
@@ -384,13 +388,21 @@ function renderPlayer(data) {
 
     ["1h", "1d", "7d"].forEach(range => {
         const btn = document.createElement("button");
-        btn.textContent       = range;
+        btn.textContent = range;
         btn.style.marginRight = "5px";
-        btn.style.cursor      = "pointer";
+        btn.style.cursor = "pointer";
         if (range === selectedRange) btn.classList.add("active-tab");
-        btn.addEventListener("click", () => { selectedRange = range; searchPlayer(); });
+        btn.addEventListener("click", () => {
+            selectedRange = range;
+            if (cachedPlayerData) {
+                renderPlayer(cachedPlayerData); // re-render from cache, no fetch
+            } else {
+                searchPlayer(); // fallback if somehow no cache
+            }
+        });
         rangeContainer.appendChild(btn);
     });
+
     playerContainer.appendChild(rangeContainer);
 
     // Tab buttons
