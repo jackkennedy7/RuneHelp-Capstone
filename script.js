@@ -5,6 +5,7 @@ const playerContainer = document.getElementById('player-container');
 let selectedRange = "1d";
 
 searchButton.addEventListener('click', searchPlayer);
+searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
 
 async function searchPlayer() {
     const username = searchInput.value.trim();
@@ -569,6 +570,231 @@ async function callGemini(userMessage) {
   conversationHistory.push({ role: 'assistant', content: reply });
   return reply;
 }
+
+// ─── Grand Exchange ───────────────────────────────────────────────────────────
+
+const GE_API      = "https://prices.runescape.wiki/api/v1/osrs";
+const GE_MAPPING  = "https://prices.runescape.wiki/api/v1/osrs/mapping";
+
+// Popular flip items with their OSRS item IDs
+const DEFAULT_ITEMS = [
+    { id: 385,   name: "Shark" },
+    { id: 565,   name: "Blood rune" },
+    { id: 560,   name: "Death rune" },
+    { id: 554,   name: "Fire rune" },
+    { id: 1515,  name: "Yew logs" },
+    { id: 1519,  name: "Magic logs" },
+    { id: 444,   name: "Gold bar" },
+    { id: 453,   name: "Coal" },
+    { id: 2363,  name: "Gold ore" },
+    { id: 561,   name: "Nature rune" },
+];
+
+let geItems      = [...DEFAULT_ITEMS];
+let geTimeframe  = "24h";
+let geChart      = null;
+let itemMapping  = [];
+
+// ─── Nav toggle ───────────────────────────────────────────
+document.getElementById('nav-tracker').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('view-tracker').style.display = 'block';
+    document.getElementById('view-ge').style.display      = 'none';
+    document.getElementById('nav-tracker').classList.add('nav-active');
+    document.getElementById('nav-ge').classList.remove('nav-active');
+});
+
+document.getElementById('nav-ge').addEventListener('click', async (e) => {
+    e.preventDefault();
+    document.getElementById('view-tracker').style.display = 'none';
+    document.getElementById('view-ge').style.display      = 'block';
+    document.getElementById('nav-ge').classList.add('nav-active');
+    document.getElementById('nav-tracker').classList.remove('nav-active');
+    await loadGE();
+});
+
+// ─── Timeframe buttons ────────────────────────────────────
+document.querySelectorAll('.ge-time-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        document.querySelectorAll('.ge-time-btn').forEach(b => b.classList.remove('active-tab'));
+        btn.classList.add('active-tab');
+        geTimeframe = btn.dataset.time;
+        await loadGE();
+    });
+});
+
+// ─── Load item mapping for search ────────────────────────
+async function loadItemMapping() {
+    if (itemMapping.length > 0) return;
+    const res  = await fetch(GE_MAPPING);
+    itemMapping = await res.json();
+}
+
+// ─── Fetch latest prices ──────────────────────────────────
+async function fetchPrices(ids) {
+    const res  = await fetch(`${GE_API}/latest`);
+    const json = await res.json();
+    return ids.map(id => ({ id, ...json.data[id] }));
+}
+
+// ─── Fetch timeseries for chart ───────────────────────────
+async function fetchTimeseries(id) {
+    const timestep = geTimeframe === "24h" ? "5m" : "1h";
+    const res = await fetch(`${GE_API}/timeseries?id=${id}&timestep=${timestep}`);
+    const json = await res.json();
+    return json.data ?? [];
+}
+
+// ─── Main GE loader ───────────────────────────────────────
+async function loadGE() {
+    const tableContainer = document.getElementById('ge-table-container');
+    tableContainer.innerHTML = "<p>Loading prices...</p>";
+
+    const ids    = geItems.map(i => i.id);
+    const prices = await fetchPrices(ids);
+
+    renderGETable(prices);
+    await renderGEChart(prices[0].id, geItems[0].name);
+}
+
+// ─── Render table ─────────────────────────────────────────
+function renderGETable(prices) {
+    const container = document.getElementById('ge-table-container');
+    container.innerHTML = "";
+
+    const table = document.createElement("table");
+    table.classList.add("stats-table");
+    table.innerHTML = `
+        <tr>
+            <th>Item</th>
+            <th>Buy</th>
+            <th>Sell</th>
+            <th>Profit</th>
+            <th>ROI %</th>
+            <th>Last Trade</th>
+        </tr>
+    `;
+
+    geItems.forEach((item, i) => {
+        const p       = prices[i] ?? {};
+        const buy     = p.high  ?? 0;
+        const sell    = p.low   ?? 0;
+        const profit  = buy - sell;
+        const roi     = sell > 0 ? ((profit / sell) * 100).toFixed(1) : "—";
+        const lastTrade = p.highTime
+            ? new Date(p.highTime * 1000).toLocaleTimeString()
+            : "—";
+
+        const row = document.createElement("tr");
+        row.style.cursor = "pointer";
+        row.innerHTML = `
+            <td>${item.name}</td>
+            <td>${formatNumber(buy)}</td>
+            <td>${formatNumber(sell)}</td>
+            <td style="color:${profit > 0 ? 'green' : 'gray'}">${formatNumber(profit)}</td>
+            <td style="color:${profit > 0 ? 'green' : 'gray'}">${roi}%</td>
+            <td>${lastTrade}</td>
+        `;
+
+        // Click row to load that item's chart
+        row.addEventListener('click', () => renderGEChart(item.id, item.name));
+        table.appendChild(row);
+    });
+
+    container.appendChild(table);
+}
+
+// ─── Render chart ─────────────────────────────────────────
+async function renderGEChart(itemId, itemName) {
+    const series = await fetchTimeseries(itemId);
+
+    const labels   = series.map(p => new Date(p.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    const buyData  = series.map(p => p.avgHighPrice);
+    const sellData = series.map(p => p.avgLowPrice);
+
+    if (geChart) geChart.destroy();
+
+    const ctx = document.getElementById('geChart').getContext('2d');
+    geChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Buy Price',
+                    data: buyData,
+                    borderColor: '#c8a96e',
+                    backgroundColor: 'rgba(200,169,110,0.1)',
+                    tension: 0.3,
+                    pointRadius: 0,
+                },
+                {
+                    label: 'Sell Price',
+                    data: sellData,
+                    borderColor: '#5b9bd5',
+                    backgroundColor: 'rgba(91,155,213,0.1)',
+                    tension: 0.3,
+                    pointRadius: 0,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: '#c8a96e', font: { family: 'rsFont' } } },
+                title: {
+                    display: true,
+                    text: `${itemName} — ${geTimeframe}`,
+                    color: '#c8a96e',
+                    font: { family: 'rsFont', size: 16 }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#aaa', maxTicksLimit: 8 }, grid: { color: '#333' } },
+                y: { ticks: { color: '#aaa', callback: v => formatAbbrev(v) }, grid: { color: '#333' } }
+            }
+        }
+    });
+}
+
+// ─── Item search with autocomplete ───────────────────────
+const geSearchInput = document.getElementById('geSearchInput');
+const geDropdown    = document.getElementById('geDropdown');
+
+geSearchInput.addEventListener('input', async () => {
+    const query = geSearchInput.value.trim().toLowerCase();
+    geDropdown.innerHTML = "";
+
+    if (!query) { geDropdown.style.display = 'none'; return; }
+
+    await loadItemMapping();
+
+    const matches = itemMapping
+        .filter(item => item.name.toLowerCase().includes(query))
+        .slice(0, 8);
+
+    if (matches.length === 0) { geDropdown.style.display = 'none'; return; }
+
+    matches.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item.name;
+        li.addEventListener('mousedown', async () => {
+            geSearchInput.value    = item.name;
+            geDropdown.style.display = 'none';
+
+            // Replace first item in list with searched item and reload
+            geItems[0] = { id: item.id, name: item.name };
+            await loadGE();
+        });
+        geDropdown.appendChild(li);
+    });
+
+    geDropdown.style.display = 'block';
+});
+
+geSearchInput.addEventListener('blur', () => {
+    setTimeout(() => { geDropdown.style.display = 'none'; }, 150);
+});
 
 // welcome page comes back on refresh
 searchInput.addEventListener('input', () => {

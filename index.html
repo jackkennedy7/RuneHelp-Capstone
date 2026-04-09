@@ -16,9 +16,8 @@
     <span class="logo-text">Rune<strong>Help</strong></span>
   </div>
   <nav class="site-nav">
-    <a href="#">Tracker</a>
-    <a href="#">News</a>
-    <a href="#">Chat</a>
+    <a href="#" id="nav-tracker" class="nav-active">Tracker</a>
+    <a href="#" id="nav-ge">Grand Exchange</a>
   </nav>
 </div>
     
@@ -49,7 +48,7 @@
 
   <div class="content-col">       <!-- ← wrap these two together -->
 
-    <div class="main-col">
+    <div class="main-col" id="view-tracker">
       <div id="welcome-banner">
         <h2>Welcome to RuneHelp!</h2>
         <p>Search for any Old School RuneScape player to view their stats, bosses, and activities.</p>
@@ -62,6 +61,23 @@
         <section class="results"></section>
       </div>
       <div id="player-container"></div>
+    </div>
+
+    <div class="main-col" id="view-ge" style="display:none;">
+        <div class="ge-search-row">
+            <div class="ge-search-wrapper">
+                <input type="text" id="geSearchInput" placeholder="Search item...">
+                <ul id="geDropdown"></ul>
+            </div>
+            <div class="ge-timeframe">
+                <button class="ge-time-btn active-tab" data-time="24h">24h</button>
+                <button class="ge-time-btn" data-time="7d">7d</button>
+            </div>
+        </div>
+        <div id="ge-table-container"></div>
+        <div id="ge-chart-container">
+            <canvas id="geChart"></canvas>
+        </div>
     </div>
 
     <div class="chat-widget">
@@ -85,6 +101,7 @@
 
 </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
     
 </body>
