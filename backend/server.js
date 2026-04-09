@@ -128,21 +128,22 @@ async function getCacheSnapshot(playerId) {
   return result.rows[0] ?? null;
 }
 
-async function upsertCacheSnapshot(playerId, skills, bosses, activities) {
-  // Always overwrite the single cache row for this player
+async function insertBaselineSnapshot(playerId, skills, bosses, activities) {
   await pool.query(
     `INSERT INTO snapshots (player_id, data, is_baseline)
-     VALUES ($1, $2, FALSE)
-     ON CONFLICT (player_id, is_baseline) 
-     DO UPDATE SET data = EXCLUDED.data, created_at = NOW()
-     WHERE snapshots.is_baseline = FALSE`,
+     VALUES ($1, $2, TRUE)
+     ON CONFLICT (player_id) WHERE is_baseline = TRUE
+     DO UPDATE SET data = EXCLUDED.data, created_at = NOW()`,
     [playerId, JSON.stringify({ skills, bosses, activities })]
   );
 }
 
-async function insertBaselineSnapshot(playerId, skills, bosses, activities) {
+async function upsertCacheSnapshot(playerId, skills, bosses, activities) {
   await pool.query(
-    `INSERT INTO snapshots (player_id, data, is_baseline) VALUES ($1, $2, TRUE)`,
+    `INSERT INTO snapshots (player_id, data, is_baseline)
+     VALUES ($1, $2, FALSE)
+     ON CONFLICT (player_id) WHERE is_baseline = FALSE
+     DO UPDATE SET data = EXCLUDED.data, created_at = NOW()`,
     [playerId, JSON.stringify({ skills, bosses, activities })]
   );
 }
