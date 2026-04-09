@@ -108,20 +108,41 @@ async function getOrCreatePlayer(username) {
   return result.rows[0].id;
 }
 
-async function getLatestSnapshot(playerId) {
+async function getBaselineSnapshot(playerId) {
   const result = await pool.query(
     `SELECT id, data, created_at FROM snapshots
-     WHERE player_id = $1
-     ORDER BY created_at DESC
-     LIMIT 1`,
+     WHERE player_id = $1 AND is_baseline = TRUE
+     ORDER BY created_at DESC LIMIT 1`,
     [playerId]
   );
   return result.rows[0] ?? null;
 }
 
-async function insertSnapshot(playerId, skills, bosses, activities) {
+async function getCacheSnapshot(playerId) {
+  const result = await pool.query(
+    `SELECT id, data, created_at FROM snapshots
+     WHERE player_id = $1 AND is_baseline = FALSE
+     ORDER BY created_at DESC LIMIT 1`,
+    [playerId]
+  );
+  return result.rows[0] ?? null;
+}
+
+async function upsertCacheSnapshot(playerId, skills, bosses, activities) {
+  // Always overwrite the single cache row for this player
   await pool.query(
-    `INSERT INTO snapshots (player_id, data) VALUES ($1, $2)`,
+    `INSERT INTO snapshots (player_id, data, is_baseline)
+     VALUES ($1, $2, FALSE)
+     ON CONFLICT (player_id, is_baseline) 
+     DO UPDATE SET data = EXCLUDED.data, created_at = NOW()
+     WHERE snapshots.is_baseline = FALSE`,
+    [playerId, JSON.stringify({ skills, bosses, activities })]
+  );
+}
+
+async function insertBaselineSnapshot(playerId, skills, bosses, activities) {
+  await pool.query(
+    `INSERT INTO snapshots (player_id, data, is_baseline) VALUES ($1, $2, TRUE)`,
     [playerId, JSON.stringify({ skills, bosses, activities })]
   );
 }
@@ -172,38 +193,47 @@ app.get("/", (req, res) => res.send("RuneHelp backend is running"));
 
 app.get("/api/player/:username", async (req, res) => {
   const username = req.params.username.trim();
+  const forceNewBaseline = req.query.newBaseline === "true";
 
   try {
     const playerId = await getOrCreatePlayer(username);
-    const latestSnapshot = await getLatestSnapshot(playerId);
+    const cacheSnapshot = await getCacheSnapshot(playerId);
+    const baselineSnapshot = await getBaselineSnapshot(playerId);
 
-    if (latestSnapshot) {
-      const ageMinutes = (Date.now() - new Date(latestSnapshot.created_at)) / (1000 * 60);
+    // Return cached hiscores if fresh (< 5 min), but diff against baseline
+    if (cacheSnapshot) {
+      const ageMinutes = (Date.now() - new Date(cacheSnapshot.created_at)) / (1000 * 60);
+      if (ageMinutes < 5 && !forceNewBaseline) {
+        const current = cacheSnapshot.data;
+        const { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs } =
+          computeDeltas(current, baselineSnapshot?.data ?? null);
+        return res.json({ username, skills: skillsWithDiffs, bosses: bossesWithDiffs, activities: activitiesWithDiffs, cached: true });
+      }
     }
 
+    // Fetch fresh hiscores
     const hiscoreJson = await fetchHiscores(username);
     if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
-
     const current = parseHiscores(hiscoreJson);
 
-    const {
-      skillsWithDiffs,
-      bossesWithDiffs,
-      activitiesWithDiffs,
-      hasChanges
-    } = computeDeltas(current, latestSnapshot?.data ?? null);
-
-    if (!hasChanges && latestSnapshot) {
+    // If no baseline yet, set current as the baseline (first ever lookup)
+    if (!baselineSnapshot || forceNewBaseline) {
+      await insertBaselineSnapshot(playerId, current.skills, current.bosses, current.activities);
+      await upsertCacheSnapshot(playerId, current.skills, current.bosses, current.activities);
       return res.json({
         username,
-        skills: skillsWithDiffs,
-        bosses: bossesWithDiffs,
-        activities: activitiesWithDiffs,
-        cached: true,
+        skills: Object.fromEntries(Object.entries(current.skills).map(([n, s]) => [n, { ...s, xpDiff: 0, levelDiff: 0 }])),
+        bosses: Object.fromEntries(Object.entries(current.bosses).map(([n, b]) => [n, { ...b, killsDiff: 0 }])),
+        activities: Object.fromEntries(Object.entries(current.activities).map(([n, a]) => [n, { ...a, scoreDiff: 0 }])),
+        cached: false,
       });
     }
 
-    await insertSnapshot(playerId, current.skills, current.bosses, current.activities);
+    // Diff current against baseline, update cache
+    const { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs } =
+      computeDeltas(current, baselineSnapshot.data);
+
+    await upsertCacheSnapshot(playerId, current.skills, current.bosses, current.activities);
 
     return res.json({
       username,
@@ -211,7 +241,6 @@ app.get("/api/player/:username", async (req, res) => {
       bosses: bossesWithDiffs,
       activities: activitiesWithDiffs,
       cached: false,
-      hasPreviousSnapshot: !!latestSnapshot,
     });
 
   } catch (err) {
