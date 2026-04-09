@@ -4,6 +4,39 @@ const playerContainer = document.getElementById('player-container');
 
 let selectedRange = "1d";
 let cachedPlayerData = null;
+const SKILL_NAMES = [
+  "Overall","Attack","Defence","Strength","Hitpoints","Ranged","Prayer","Magic","Cooking",
+  "Woodcutting","Fletching","Fishing","Firemaking","Crafting","Smithing","Mining","Herblore",
+  "Agility","Thieving","Slayer","Farming","Runecrafting","Hunter","Construction","Sailing"
+];
+
+const BOSS_NAMES = [
+  "Abyssal Sire","Alchemical Hydra","Amoxliatl","Araxxor","Artio",
+  "Barrows Chests","Brutus","Bryophyta","Callisto","Calvar'ion",
+  "Cerberus","Chambers of Xeric","Chambers of Xeric: Challenge Mode",
+  "Chaos Elemental","Chaos Fanatic","Commander Zilyana","Corporeal Beast",
+  "Crazy Archaeologist","Dagannoth Prime","Dagannoth Rex","Dagannoth Supreme",
+  "Deranged Archaeologist","Doom of Mokhaiotl","Duke Sucellus","General Graardor",
+  "Giant Mole","Grotesque Guardians","Hespori","Kalphite Queen","King Black Dragon",
+  "Kraken","Kree'Arra","K'ril Tsutsaroth","Lunar Chests","Mimic","Nex",
+  "Nightmare","Phosani's Nightmare","Obor","Phantom Muspah","Sarachnis","Scorpia",
+  "Scurrius","Shellbane Gryphon","Skotizo","Sol Heredit","Spindel","Tempoross",
+  "The Gauntlet","The Corrupted Gauntlet","The Hueycoatl","The Leviathan",
+  "The Royal Titans","The Whisperer","Theatre of Blood","Theatre of Blood: Hard Mode",
+  "Thermonuclear Smoke Devil","Tombs of Amascut","Tombs of Amascut: Expert Mode",
+  "TzKal-Zuk","TzTok-Jad","Vardorvis","Venenatis","Vet'ion","Vorkath",
+  "Wintertodt","Yama","Zalcano","Zulrah"
+];
+
+const ACTIVITY_NAMES = [
+  "Grid Points", "League Points", "Deadman Points",
+  "Bounty Hunter - Hunter", "Bounty Hunter - Rogue",
+  "Bounty Hunter (Legacy) - Hunter", "Bounty Hunter (Legacy) - Rogue",
+  "Clue Scrolls (all)", "Clue Scrolls (beginner)", "Clue Scrolls (easy)",
+  "Clue Scrolls (medium)", "Clue Scrolls (hard)", "Clue Scrolls (elite)",
+  "Clue Scrolls (master)", "LMS - Rank", "PvP Arena - Rank",
+  "Soul Wars Zeal", "Rifts closed", "Colosseum Glory", "Collections Logged"
+];
 
 searchButton.addEventListener('click', searchPlayer);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
@@ -64,39 +97,41 @@ function capitalize(word = "") {
 
 function normalizePlayerData(data) {
     const normalized = {
-        username:   data.username,
-        skills:     {},
-        bosses:     {},
+        username: data.username,
+        skills: {},
+        bosses: {},
         activities: {}
     };
 
-    for (const [skill, info] of Object.entries(data.skills ?? {})) {
+    for (const skill of SKILL_NAMES) {
+        const info = data.skills?.[skill] ?? {};
         const xp = Number(info.xp ?? 0);
         normalized.skills[skill] = {
-            level:  info.level === -1 ? 1 : Number(info.level ?? 1),
-            xp:     xp === -1 ? 0 : xp,
+            level: info.level === -1 ? 1 : Number(info.level ?? 1),
+            xp: xp === -1 ? 0 : xp,
             xpDiff: Number(info.xpDiff ?? 0)
         };
     }
 
-    for (const [name, info] of Object.entries(data.bosses ?? {})) {
+    for (const boss of BOSS_NAMES) {
+        const info = data.bosses?.[boss] ?? {};
         const kills = Number(info.kills ?? 0);
-        normalized.bosses[name] = {
-            kills:     kills === -1 ? 0 : kills,
-            rank:      Number(info.rank ?? -1),
+        normalized.bosses[boss] = {
+            kills: kills === -1 ? 0 : kills,
+            rank: Number(info.rank ?? -1),
             killsDiff: Number(info.killsDiff ?? 0)
         };
     }
 
-    for (const [name, info] of Object.entries(data.activities ?? {})) {
+    for (const activity of ACTIVITY_NAMES) {
+        const info = data.activities?.[activity] ?? {};
         const score = Number(info.score ?? 0);
-        normalized.activities[name] = {
+        normalized.activities[activity] = {
             score: score === -1 ? 0 : score,
             rank: Number(info.rank ?? -1),
             scoreDiff: Number(info.scoreDiff ?? 0)
         };
     }
-
 
     return normalized;
 }
