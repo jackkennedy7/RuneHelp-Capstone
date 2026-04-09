@@ -198,29 +198,18 @@ app.get("/api/player/:username", async (req, res) => {
 
   try {
     const playerId = await getOrCreatePlayer(username);
-    const cacheSnapshot = await getCacheSnapshot(playerId);
     const baselineSnapshot = await getBaselineSnapshot(playerId);
+    const cacheSnapshot = await getCacheSnapshot(playerId);
 
-    // Return cached hiscores if fresh (< 5 min), but diff against baseline
-    if (cacheSnapshot) {
-      const ageMinutes = (Date.now() - new Date(cacheSnapshot.created_at)) / (1000 * 60);
-      if (ageMinutes < 5 && !forceNewBaseline) {
-        const current = cacheSnapshot.data;
-        const { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs } =
-          computeDeltas(current, baselineSnapshot?.data ?? null);
-        return res.json({ username, skills: skillsWithDiffs, bosses: bossesWithDiffs, activities: activitiesWithDiffs, cached: true });
-      }
-    }
-
-    // Fetch fresh hiscores
-    const hiscoreJson = await fetchHiscores(username);
-    if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
-    const current = parseHiscores(hiscoreJson);
-
-    // If no baseline yet, set current as the baseline (first ever lookup)
+    // No baseline yet — set current as baseline, return zero diffs
     if (!baselineSnapshot || forceNewBaseline) {
+      const hiscoreJson = await fetchHiscores(username);
+      if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
+      const current = parseHiscores(hiscoreJson);
+
       await insertBaselineSnapshot(playerId, current.skills, current.bosses, current.activities);
       await upsertCacheSnapshot(playerId, current.skills, current.bosses, current.activities);
+
       return res.json({
         username,
         skills: Object.fromEntries(Object.entries(current.skills).map(([n, s]) => [n, { ...s, xpDiff: 0, levelDiff: 0 }])),
@@ -230,11 +219,30 @@ app.get("/api/player/:username", async (req, res) => {
       });
     }
 
-    // Diff current against baseline, update cache
+    // Cache is fresh — skip hiscore fetch, diff cache against baseline
+    if (cacheSnapshot) {
+      const ageMinutes = (Date.now() - new Date(cacheSnapshot.created_at)) / (1000 * 60);
+      if (ageMinutes < 5) {
+        const { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs } =
+          computeDeltas(cacheSnapshot.data, baselineSnapshot.data);
+        return res.json({ username, skills: skillsWithDiffs, bosses: bossesWithDiffs, activities: activitiesWithDiffs, cached: true });
+      }
+    }
+
+    // Cache is stale — fetch fresh hiscores
+    const hiscoreJson = await fetchHiscores(username);
+    if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
+    const current = parseHiscores(hiscoreJson);
+
+    // Check if stats actually changed since last cache
+    const { hasChanges } = computeDeltas(current, cacheSnapshot?.data ?? baselineSnapshot.data);
+    if (hasChanges) {
+      await upsertCacheSnapshot(playerId, current.skills, current.bosses, current.activities);
+    }
+
+    // Always diff against baseline for the response
     const { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs } =
       computeDeltas(current, baselineSnapshot.data);
-
-    await upsertCacheSnapshot(playerId, current.skills, current.bosses, current.activities);
 
     return res.json({
       username,
