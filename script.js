@@ -4,7 +4,6 @@ const playerContainer = document.getElementById('player-container');
 
 let selectedRange = "1d";
 let cachedPlayerData = null;
-let currentGEData = null;
 
 searchButton.addEventListener('click', searchPlayer);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
@@ -65,39 +64,41 @@ function capitalize(word = "") {
 
 function normalizePlayerData(data) {
     const normalized = {
-        username:   data.username,
-        skills:     {},
-        bosses:     {},
+        username: data.username,
+        skills: {},
+        bosses: {},
         activities: {}
     };
 
-    for (const [skill, info] of Object.entries(data.skills ?? {})) {
+    for (const skill of SKILL_NAMES) {
+        const info = data.skills?.[skill] ?? {};
         const xp = Number(info.xp ?? 0);
         normalized.skills[skill] = {
-            level:  info.level === -1 ? 1 : Number(info.level ?? 1),
-            xp:     xp === -1 ? 0 : xp,
+            level: info.level === -1 ? 1 : Number(info.level ?? 1),
+            xp: xp === -1 ? 0 : xp,
             xpDiff: Number(info.xpDiff ?? 0)
         };
     }
 
-    for (const [name, info] of Object.entries(data.bosses ?? {})) {
+    for (const boss of BOSS_NAMES) {
+        const info = data.bosses?.[boss] ?? {};
         const kills = Number(info.kills ?? 0);
-        normalized.bosses[name] = {
-            kills:     kills === -1 ? 0 : kills,
-            rank:      Number(info.rank ?? -1),
+        normalized.bosses[boss] = {
+            kills: kills === -1 ? 0 : kills,
+            rank: Number(info.rank ?? -1),
             killsDiff: Number(info.killsDiff ?? 0)
         };
     }
 
-    for (const [name, info] of Object.entries(data.activities ?? {})) {
+    for (const activity of ACTIVITY_NAMES) {
+        const info = data.activities?.[activity] ?? {};
         const score = Number(info.score ?? 0);
-        normalized.activities[name] = {
+        normalized.activities[activity] = {
             score: score === -1 ? 0 : score,
             rank: Number(info.rank ?? -1),
             scoreDiff: Number(info.scoreDiff ?? 0)
         };
     }
-
 
     return normalized;
 }
