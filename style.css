@@ -373,6 +373,7 @@ body {
   border-radius: 8px;
   text-align: center;
   box-shadow: 5px 10px 10px rgba(0, 0, 0, .4);
+  background-color: white;
  
 }
 #player-container table
@@ -390,6 +391,7 @@ body {
   border-collapse: separate;
   width: 100%;
   box-shadow: 5px 10px 10px rgba(0, 0, 0, .4);
+  background-color: whitesmoke;
 }
 #player-container table th, td
 {
@@ -456,7 +458,7 @@ body {
 
 /* ── GE table ── */
 #ge-table-container {
-    background: lightgray;
+    background: whitesmoke;
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #3a3020;
@@ -465,12 +467,15 @@ body {
 }
 
 #ge-chart-container {
-    background: lightgray;
+    background: whitesmoke;
     border: 1px solid #3a3020;
     border-radius: 8px;
     padding: 16px;
 }
-
+.ge-search-w.geSearchInput
+{
+  background-color: white;;
+}
 .stats-table
 {
   width: 100%;
