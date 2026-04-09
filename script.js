@@ -38,6 +38,33 @@ const BOSS_NAMES = [
   "TzKal-Zuk","TzTok-Jad","Vardorvis","Venenatis","Vet'ion","Vorkath",
   "Wintertodt","Yama","Zalcano","Zulrah"
 ];
+const SKILL_ICONS = {
+  "Overall":       "https://oldschool.runescape.wiki/images/Stats_icon.png",
+  "Attack":        "https://oldschool.runescape.wiki/images/Attack_icon.png",
+  "Defence":       "https://oldschool.runescape.wiki/images/Defence_icon.png",
+  "Strength":      "https://oldschool.runescape.wiki/images/Strength_icon.png",
+  "Hitpoints":     "https://oldschool.runescape.wiki/images/Hitpoints_icon.png",
+  "Ranged":        "https://oldschool.runescape.wiki/images/Ranged_icon.png",
+  "Prayer":        "https://oldschool.runescape.wiki/images/Prayer_icon.png",
+  "Magic":         "https://oldschool.runescape.wiki/images/Magic_icon.png",
+  "Cooking":       "https://oldschool.runescape.wiki/images/Cooking_icon.png",
+  "Woodcutting":   "https://oldschool.runescape.wiki/images/Woodcutting_icon.png",
+  "Fletching":     "https://oldschool.runescape.wiki/images/Fletching_icon.png",
+  "Fishing":       "https://oldschool.runescape.wiki/images/Fishing_icon.png",
+  "Firemaking":    "https://oldschool.runescape.wiki/images/Firemaking_icon.png",
+  "Crafting":      "https://oldschool.runescape.wiki/images/Crafting_icon.png",
+  "Smithing":      "https://oldschool.runescape.wiki/images/Smithing_icon.png",
+  "Mining":        "https://oldschool.runescape.wiki/images/Mining_icon.png",
+  "Herblore":      "https://oldschool.runescape.wiki/images/Herblore_icon.png",
+  "Agility":       "https://oldschool.runescape.wiki/images/Agility_icon.png",
+  "Thieving":      "https://oldschool.runescape.wiki/images/Thieving_icon.png",
+  "Slayer":        "https://oldschool.runescape.wiki/images/Slayer_icon.png",
+  "Farming":       "https://oldschool.runescape.wiki/images/Farming_icon.png",
+  "Runecrafting":  "https://oldschool.runescape.wiki/images/Runecraft_icon.png",
+  "Hunter":        "https://oldschool.runescape.wiki/images/Hunter_icon.png",
+  "Construction":  "https://oldschool.runescape.wiki/images/Construction_icon.png",
+  "Sailing":       "https://oldschool.runescape.wiki/images/Sailing_icon.png",
+};
 
 searchButton.addEventListener('click', searchPlayer);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
@@ -321,9 +348,13 @@ function renderSkillsTab(data, contentContainer) {
 
     for (const [skill, info] of Object.entries(data.skills)) {
         const diff = info.xpDiff;
-        const row  = document.createElement("tr");
+        const iconUrl = SKILL_ICONS[skill] ?? "";
+        const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${capitalize(skill)}</td>
+            <td>
+                ${iconUrl ? `<img src="${iconUrl}" alt="${skill}" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">` : ""}
+                ${capitalize(skill)}
+            </td>
             <td>${info.level}</td>
             <td title="${formatNumber(info.xp)}">${formatAbbrev(info.xp)}</td>
             <td style="color:${getDiffColor(diff)}" title="${formatNumber(diff)}">${formatDiff(diff)}</td>
