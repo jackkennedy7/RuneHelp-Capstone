@@ -4,6 +4,7 @@ const playerContainer = document.getElementById('player-container');
 
 let selectedRange = "1d";
 let cachedPlayerData = null;
+let currentGEData = null;
 
 searchButton.addEventListener('click', searchPlayer);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
@@ -508,8 +509,10 @@ async function fetchPlayerData(username) {
 // ─── Build system prompt ──────────────────────────────────
 function buildSystemPrompt() {
   const base = `You are RuneHelp, a helpful Old School RuneScape assistant embedded in a player stats app.
-You have access to live player stats fetched from the Wise Old Man API.
-- Keep responses short and conversational — 2 to 6 sentences max.
+You have access to live player stats fetched from the Wise Old Man API. You also have access to the Grand Exchange api
+and can tell players about market trends and items they have questions about such as where to obtain them or if its a good idea to
+buy or sell.
+- Keep responses short and conversational — 2 to 4 sentences max.
 - Never use markdown formatting. No bold, no bullet points, no asterisks.
 - Use plain sentences only.
 - Use OSRS terminology naturally.
@@ -517,10 +520,14 @@ You have access to live player stats fetched from the Wise Old Man API.
 - If no player is loaded yet, encourage the user to type a username.
 - Time range context: the stats shown cover the last ${selectedRange}.`;
 
+  let prompt = base;
   if (currentPlayerData) {
-    return `${base}\n\nCurrent player data (JSON):\n${JSON.stringify(currentPlayerData, null, 2)}`;
+    prompt += `\n\nCurrent player data (JSON):\n${JSON.stringify(currentPlayerData, null, 2)}`;
   }
-  return base;
+  if (currentGEData) {
+    prompt += `\n\nCurrent Grand Exchange data (buy/sell/profit/roi):\n${JSON.stringify(currentGEData, null, 2)}`;
+  }
+  return prompt;
 }
 
 // ─── Main send function ───────────────────────────────────
@@ -664,6 +671,16 @@ async function loadGE() {
 
     const ids    = geItems.map(i => i.id);
     const prices = await fetchPrices(ids);
+
+    currentGEData = geItems.map((item, i) => 
+        {
+        const p      = prices[i] ?? {};
+        const buy    = p.high ?? 0;
+        const sell   = p.low  ?? 0;
+        const profit = buy - sell;
+        const roi    = sell > 0 ? ((profit / sell) * 100).toFixed(1) : null;
+        return { name: item.name, buy, sell, profit, roi };
+    });
 
     renderGETable(prices);
     await renderGEChart(prices[0].id, geItems[0].name);
