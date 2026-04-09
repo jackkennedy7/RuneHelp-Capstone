@@ -53,6 +53,9 @@ button
   border-radius: 15px;
   height: 100%;
 }
+h2{
+  background-color: white;
+}
 @font-face 
 {
   font-family: rsFont;

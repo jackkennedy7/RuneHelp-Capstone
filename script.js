@@ -993,6 +993,25 @@ geSearchInput.addEventListener('blur', () => {
     setTimeout(() => { geDropdown.style.display = 'none'; }, 150);
 });
 
+geSearchInput.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Enter') return;
+
+    const query = geSearchInput.value.trim().toLowerCase();
+    if (!query) return;
+
+    await loadItemMapping();
+
+    const match = itemMapping.find(item => item.name.toLowerCase() === query)
+        ?? itemMapping.find(item => item.name.toLowerCase().includes(query));
+
+    if (!match) return;
+
+    geSearchInput.value      = match.name;
+    geDropdown.style.display = 'none';
+    geItems = [{ id: match.id, name: match.name }];
+    await loadGE();
+});
+
 // welcome page comes back on refresh
 searchInput.addEventListener('input', () => {
     if (searchInput.value.trim() === '') {
