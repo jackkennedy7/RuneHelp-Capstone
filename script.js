@@ -299,9 +299,9 @@ function renderSkillsTab(data, contentContainer) {
 function renderBossingTab(data, contentContainer) {
     contentContainer.innerHTML = "";
 
-    const allEntries = Object.entries(data.bosses);
-    let currentPage  = 0;
-    let filtered     = allEntries;
+    const allEntries = Object.entries(data.bosses).slice();
+    let currentPage = 0;
+    let filtered = allEntries.slice();
 
     const tableWrapper = document.createElement("div");
 
@@ -328,9 +328,9 @@ function renderBossingTab(data, contentContainer) {
 function renderActivitiesTab(data, contentContainer) {
     contentContainer.innerHTML = "";
 
-    const allEntries = Object.entries(data.activities);
-    let currentPage  = 0;
-    let filtered     = allEntries;
+    const allEntries = Object.entries(data.activities).slice(); // stable snapshot
+    let currentPage = 0;
+    let filtered = allEntries.slice();
 
     const tableWrapper = document.createElement("div");
 

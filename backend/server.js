@@ -179,30 +179,6 @@ app.get("/api/player/:username", async (req, res) => {
 
     if (latestSnapshot) {
       const ageMinutes = (Date.now() - new Date(latestSnapshot.created_at)) / (1000 * 60);
-
-      if (ageMinutes < 5) {
-        const { skills, bosses, activities } = latestSnapshot.data;
-
-        const zeroSkills = Object.fromEntries(
-          Object.entries(skills).map(([n, s]) => [n, { ...s, levelDiff: 0, xpDiff: 0 }])
-        );
-
-        const zeroBosses = Object.fromEntries(
-          Object.entries(bosses).map(([n, b]) => [n, { ...b, killsDiff: 0 }])
-        );
-
-        const zeroActivities = Object.fromEntries(
-          Object.entries(activities).map(([n, a]) => [n, { ...a, scoreDiff: 0 }])
-        );
-
-        return res.json({
-          username,
-          skills: zeroSkills,
-          bosses: zeroBosses,
-          activities: zeroActivities,
-          cached: true,
-        });
-      }
     }
 
     const hiscoreJson = await fetchHiscores(username);
