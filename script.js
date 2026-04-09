@@ -130,7 +130,7 @@ const BOSS_ICONS = {
   "TzTok-Jad":                          "https://oldschool.runescape.wiki/images/Tzrek-jad.png",
   "Vardorvis":                          "https://oldschool.runescape.wiki/images/Butch.png",
   "Venenatis":                          "https://oldschool.runescape.wiki/images/Venenatis_spiderling.png",
-  "Vet'ion":                            "https://oldschool.runescape.wiki/images/Vet%27ion_jr.png",
+  "Vet'ion":                            "https://oldschool.runescape.wiki/images/Vet%27ion_jr..png",
   "Vorkath":                            "https://oldschool.runescape.wiki/images/Vorkath%27s_head.png",
   "Wintertodt":                         "https://oldschool.runescape.wiki/images/Phoenix.png",
   "Yama":                               "https://oldschool.runescape.wiki/images/Yami.png",
@@ -139,9 +139,9 @@ const BOSS_ICONS = {
 };
 
 const ACTIVITY_ICONS = {
-  "Grid Points":                     "https://oldschool.runescape.wiki/images/League_Points_icon.png",
-  "League Points":                   "https://oldschool.runescape.wiki/images/League_Points_icon.png",
-  "Deadman Points":                  "https://oldschool.runescape.wiki/images/League_Points_icon.png",
+  "League Points":                   "https://oldschool.runescape.wiki/images/League_Points.png",
+  "Grid Points":                     "https://oldschool.runescape.wiki/images/League_Points.png",
+  "Deadman Points":                  "https://oldschool.runescape.wiki/images/DMM_skulls.png",
   "Bounty Hunter - Hunter":          "https://oldschool.runescape.wiki/images/Hunter%27s_honour.png",
   "Bounty Hunter - Rogue":           "https://oldschool.runescape.wiki/images/Rogue%27s_revenge.png",
   "Bounty Hunter (Legacy) - Hunter": "https://oldschool.runescape.wiki/images/Hunter%27s_honour.png",
@@ -157,7 +157,7 @@ const ACTIVITY_ICONS = {
   "PvP Arena - Rank":                "https://oldschool.runescape.wiki/images/Scroll_of_imbuing.png",
   "Soul Wars Zeal":                  "https://oldschool.runescape.wiki/images/Lil%27_creator.png",
   "Rifts closed":                    "https://oldschool.runescape.wiki/images/Abyssal_protector.png",
-  "Colosseum Glory":                 "https://oldschool.runescape.wiki/images/Sunfire_splinters.png",
+  "Colosseum Glory":                 "https://oldschool.runescape.wiki/images/Sunfire_splinters_4.png",
   "Collections Logged":              "https://oldschool.runescape.wiki/images/Collection_log.png",
 };
 
