@@ -273,7 +273,7 @@ app.post("/api/chat", async (req, res) => {
       "Authorization": `Bearer ${process.env.OR_API_KEY}`
     },
   body: JSON.stringify({
-      model: "google/gemma-4-31b-it:free",
+      model: "nvidia/nemotron-3-super-120b-a12b:free",
       messages: [
         { role: "system", content: system },
         ...messages.map(m => ({ role: m.role === "bot" ? "assistant" : m.role, content: m.content }))
