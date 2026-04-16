@@ -747,7 +747,7 @@ async function callGemini(userMessage) {
 
   if (!res.ok) throw new Error(`Server error: ${res.status}`);
   const data = await res.json();
-  const reply = data.candidates[0].content.parts[0].text;
+  const reply = data.choices[0].message.content;
   conversationHistory.push({ role: 'assistant', content: reply });
   return reply;
 }

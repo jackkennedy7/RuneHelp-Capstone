@@ -266,17 +266,22 @@ app.post("/api/chat", async (req, res) => {
     parts: [{ text: m.content }]
   }));
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: system }] },
-        contents: geminiMessages
-      })
-    }
-  );
+   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.OR_API_KEY}`
+    },
+  body: JSON.stringify({
+      model: "nvidia/nemotron-3-super-120b-a12b:free",
+      messages: [
+        { role: "system", content: system },
+        ...messages.map(m => ({ role: m.role === "bot" ? "assistant" : m.role, content: m.content }))
+      ],
+      max_tokens: 300,
+      temperature: 0.7
+    })
+  });
 
   if (!response.ok) {
     const err = await response.text();
