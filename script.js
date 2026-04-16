@@ -4,6 +4,7 @@ const playerContainer = document.getElementById('player-container');
 
 let selectedRange = "1d";
 let cachedPlayerData = null;
+let currentGEData = null;
 
 const ACTIVITY_NAMES = [
   "Grid Points", "League Points", "Deadman Points",
