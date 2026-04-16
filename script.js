@@ -7,9 +7,6 @@ let cachedPlayerData = null;
 let currentGEData = null;
 
 const ACTIVITY_NAMES = [
-  "Grid Points", "League Points", "Deadman Points",
-  "Bounty Hunter - Hunter", "Bounty Hunter - Rogue",
-  "Bounty Hunter (Legacy) - Hunter", "Bounty Hunter (Legacy) - Rogue",
   "Clue Scrolls (all)", "Clue Scrolls (beginner)", "Clue Scrolls (easy)",
   "Clue Scrolls (medium)", "Clue Scrolls (hard)", "Clue Scrolls (elite)",
   "Clue Scrolls (master)", "LMS - Rank", "PvP Arena - Rank",
@@ -140,13 +137,6 @@ const BOSS_ICONS = {
 };
 
 const ACTIVITY_ICONS = {
-  "League Points":                   "https://oldschool.runescape.wiki/images/League_Points.png",
-  "Grid Points":                     "https://oldschool.runescape.wiki/images/League_Points.png",
-  "Deadman Points":                  "https://oldschool.runescape.wiki/images/DMM_skulls.png",
-  "Bounty Hunter - Hunter":          "https://oldschool.runescape.wiki/images/Hunter%27s_honour.png",
-  "Bounty Hunter - Rogue":           "https://oldschool.runescape.wiki/images/Rogue%27s_revenge.png",
-  "Bounty Hunter (Legacy) - Hunter": "https://oldschool.runescape.wiki/images/Hunter%27s_honour.png",
-  "Bounty Hunter (Legacy) - Rogue":  "https://oldschool.runescape.wiki/images/Rogue%27s_revenge.png",
   "Clue Scrolls (all)":              "https://oldschool.runescape.wiki/images/Clue_scroll.png",
   "Clue Scrolls (beginner)":         "https://oldschool.runescape.wiki/images/Clue_scroll_%28beginner%29.png",
   "Clue Scrolls (easy)":             "https://oldschool.runescape.wiki/images/Clue_scroll_%28easy%29.png",
