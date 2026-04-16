@@ -273,7 +273,7 @@ app.post("/api/chat", async (req, res) => {
       "Authorization": `Bearer ${process.env.OR_API_KEY}`
     },
   body: JSON.stringify({
-      model: "meta-llama/llama-3.3-70b-instruct:free",
+      model: "google/gemma-4-31b-it:free",
       messages: [
         { role: "system", content: system },
         ...messages.map(m => ({ role: m.role === "bot" ? "assistant" : m.role, content: m.content }))
