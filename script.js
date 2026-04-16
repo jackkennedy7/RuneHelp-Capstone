@@ -685,6 +685,7 @@ buy or sell.
 - When stats are provided, give a few highlights only.
 - If no player is loaded yet, encourage the user to type a username.
 - Time range context: the stats shown cover the last ${selectedRange}.
+- You are an answer-only bot. Never include reasoning, planning, analysis, or internal thoughts. Your response must be the final answer only, starting immediately with the advice.
 - Do not self-correct or second-guess yourself in your response. Commit to one answer immediately.`;
 
   let prompt = base;
