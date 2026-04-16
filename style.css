@@ -53,9 +53,7 @@ button
   border-radius: 15px;
   height: 100%;
 }
-h2{
-  background-color: white;
-}
+
 @font-face 
 {
   font-family: rsFont;
@@ -156,6 +154,7 @@ body {
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.2);
     margin-bottom: 20px;
+    background-color: whitesmoke;
 }
 
 #welcome-banner h2 {
@@ -164,7 +163,7 @@ body {
 }
 
 #welcome-banner p {
-    color: #e8e8e8;
+    color: grey;
     font-size: 1rem;
 }
 .content-col {
