@@ -166,7 +166,11 @@ body {
     color: grey;
     font-size: 1rem;
 }
-
+#tabledesc
+{
+  text-align: center;
+  font-size: 1rem;
+}
 .content-col {
   flex: 1;
   display: flex;
