@@ -265,29 +265,37 @@ if (fresh) {
   currentData = typeof latest.data === "string"
     ? JSON.parse(latest.data)
     : latest.data;
-} else {
-  const hiscoreJson = await fetchHiscores(username);
-  if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
+  } else {
+    const hiscoreJson = await fetchHiscores(username);
+    if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
 
-  currentData = parseHiscores(hiscoreJson);
+      currentData = parseHiscores(hiscoreJson);
 
-  await insertSnapshot(playerId, currentData.skills, currentData.bosses, currentData.activities);
-  fetchedFresh = true;
+      await insertSnapshot(playerId, currentData.skills, currentData.bosses, currentData.activities);
+      fetchedFresh = true;
 
-  // refresh latest after insert
-  latest = await getLatestSnapshot(playerId);
-}
+      // refresh latest after insert
+      latest = await getLatestSnapshot(playerId);
+    }
  
     // ── Find the baseline for the requested time frame ────────────────────────
     // Look for the oldest snapshot that falls at or before the cutoff.
-  const baselineSnapshot = await pool.query(
-    `SELECT id, data, created_at FROM snapshots
-    WHERE player_id = $1
-    AND created_at < $2
-    ORDER BY created_at DESC
-    LIMIT 1`,
-    [playerId, latest.created_at]
-  ); 
+  const baselineResult = await pool.query(
+  `SELECT id, data, created_at FROM snapshots
+   WHERE player_id = $1
+   AND created_at < $2
+   ORDER BY created_at DESC
+   LIMIT 1`,
+  [playerId, latest.created_at]
+);
+
+const baselineSnapshot = baselineResult.rows[0] ?? null;
+
+const baselineData = baselineSnapshot
+  ? (typeof baselineSnapshot.data === "string"
+      ? JSON.parse(baselineSnapshot.data)
+      : baselineSnapshot.data)
+  : null;
     if (!baselineSnapshot) {
       // No snapshot exists for this window yet — diffs are all zero
       return res.json({
@@ -301,7 +309,7 @@ if (fresh) {
  
     // ── Compute and return deltas ─────────────────────────────────────────────
     const { skillsWithDiffs, bossesWithDiffs, activitiesWithDiffs } =
-      computeDeltas(currentData, baselineSnapshot.data);
+      computeDeltas(currentData, baselineData);
  
     return res.json({
       username,
