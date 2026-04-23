@@ -253,25 +253,30 @@ app.get("/api/player/:username", async (req, res) => {
   try {
     const playerId = await getOrCreatePlayer(username);
  
-    // ── Decide whether to fetch fresh hiscores ────────────────────────────────
-    // We only hit the API if the most recent snapshot is older than 5 minutes.
-    let currentData;
-    let fetchedFresh = false;
- 
-    const fresh = await isCacheFresh(playerId, 5);
- 
-    if (fresh) {
-      // Use the most recent snapshot as "current" without a new API call
-      const latest  = await getLatestSnapshot(playerId);
-      currentData = typeof latest.data === "string" ? JSON.parse(latest.data) : latest.data;
-    } else {
-      // Fetch live hiscores and persist as a new snapshot
-      const hiscoreJson = await fetchHiscores(username);
-      if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
-      currentData   = parseHiscores(hiscoreJson);
-      await insertSnapshot(playerId, currentData.skills, currentData.bosses, currentData.activities);
-      fetchedFresh  = true;
-    }
+ let currentData;
+let fetchedFresh = false;
+
+// ALWAYS get latest snapshot first
+let latest = await getLatestSnapshot(playerId);
+
+const fresh = latest && (Date.now() - new Date(latest.created_at)) < 5 * 60 * 1000;
+
+if (fresh) {
+  currentData = typeof latest.data === "string"
+    ? JSON.parse(latest.data)
+    : latest.data;
+} else {
+  const hiscoreJson = await fetchHiscores(username);
+  if (!hiscoreJson) return res.status(404).json({ error: "Player not found" });
+
+  currentData = parseHiscores(hiscoreJson);
+
+  await insertSnapshot(playerId, currentData.skills, currentData.bosses, currentData.activities);
+  fetchedFresh = true;
+
+  // refresh latest after insert
+  latest = await getLatestSnapshot(playerId);
+}
  
     // ── Find the baseline for the requested time frame ────────────────────────
     // Look for the oldest snapshot that falls at or before the cutoff.
