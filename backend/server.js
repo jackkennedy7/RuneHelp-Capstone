@@ -275,8 +275,14 @@ app.get("/api/player/:username", async (req, res) => {
  
     // ── Find the baseline for the requested time frame ────────────────────────
     // Look for the oldest snapshot that falls at or before the cutoff.
-    const baselineSnapshot = await getSnapshotAtOrBefore(playerId, cutoff);
- 
+  const baselineSnapshot = await pool.query(
+    `SELECT id, data, created_at FROM snapshots
+    WHERE player_id = $1
+    AND created_at < $2
+    ORDER BY created_at DESC
+    LIMIT 1`,
+    [playerId, latest.created_at]
+  ); 
     if (!baselineSnapshot) {
       // No snapshot exists for this window yet — diffs are all zero
       return res.json({
