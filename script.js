@@ -533,7 +533,7 @@ function renderActivitiesTab(data, contentContainer) {
 
 function renderPlayer(data) {
     document.getElementById('welcome-banner').style.display = 'none'; // hide welcome page
-    document.getElementById('tabledesc')
+    document.getElementById('tabledesc').style.display = 'none';
     cachedPlayerData = data;
     const normalizedData = normalizePlayerData(data);
     data = normalizePlayerData(data);
