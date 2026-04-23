@@ -522,7 +522,8 @@ function renderActivitiesTab(data, contentContainer) {
 // ─── Player render ────────────────────────────────────────────────────────────
 
 function renderPlayer(data) {
-    document.getElementById('welcome-banner').style.display = 'none';
+    document.getElementById('welcome-banner').style.display = 'none'; // hide welcome page
+    document.getElementById('tabledesc')
     cachedPlayerData = data;
     const normalizedData = normalizePlayerData(data);
     data = normalizePlayerData(data);
