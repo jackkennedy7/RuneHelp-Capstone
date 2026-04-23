@@ -263,7 +263,7 @@ app.get("/api/player/:username", async (req, res) => {
     if (fresh) {
       // Use the most recent snapshot as "current" without a new API call
       const latest  = await getLatestSnapshot(playerId);
-      currentData   = latest.data;
+      currentData = typeof latest.data === "string" ? JSON.parse(latest.data) : latest.data;
     } else {
       // Fetch live hiscores and persist as a new snapshot
       const hiscoreJson = await fetchHiscores(username);
