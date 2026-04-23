@@ -6,6 +6,14 @@ let selectedRange = "1d";
 let cachedPlayerData = null;
 let currentGEData = null;
 
+const RANGE_TO_TIMEFRAME = {
+  "1h": "hour",
+  "1d": "day",
+  "7d": "week",
+};
+
+
+
 const ACTIVITY_NAMES = [
   "Grid Points", "League Points", "Deadman Points",
   "Bounty Hunter - Hunter", "Bounty Hunter - Rogue",
@@ -166,23 +174,25 @@ searchButton.addEventListener('click', searchPlayer);
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchPlayer(); }); // ← ADD THIS
 
 async function searchPlayer() {
-    const username = searchInput.value.trim();
-    if (!username) { alert('Please enter a username'); return; }
+  const username = searchInput.value.trim();
+  if (!username) { alert('Please enter a username'); return; }
 
-    cachedPlayerData = null;
-    playerContainer.innerHTML = "<p>Loading...</p>";
+  cachedPlayerData = null;
+  playerContainer.innerHTML = "<p>Loading...</p>";
 
-    try {
-        const response = await fetch(
-            `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}?range=${selectedRange}`
-        );
-        if (!response.ok) throw new Error("Player not found");
-        const data = await response.json();
-        renderPlayer(data);
-    } catch (err) {
-        console.error(err);
-        playerContainer.innerHTML = `<p style="color:red;">Error loading player</p>`;
-    }
+  try {
+    const timeframe = RANGE_TO_TIMEFRAME[selectedRange] ?? "day";
+    const response = await fetch(
+      `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}?timeframe=${timeframe}`
+    );
+    if (!response.ok) throw new Error("Player not found");
+    const data = await response.json();
+    cachedPlayerData = data; // store username so we can re-fetch
+    renderPlayer(data);
+  } catch (err) {
+    console.error(err);
+    playerContainer.innerHTML = `<p style="color:red;">Error loading player</p>`;
+  }
 }
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -558,11 +568,7 @@ function renderPlayer(data) {
         if (range === selectedRange) btn.classList.add("active-tab");
         btn.addEventListener("click", () => {
             selectedRange = range;
-            if (cachedPlayerData) {
-                renderPlayer(cachedPlayerData); // re-render from cache, no fetch
-            } else {
-                searchPlayer(); // fallback if somehow no cache
-            }
+            searchPlayer(); // ← always re-fetch so backend uses the new timeframe
         });
         rangeContainer.appendChild(btn);
     });
@@ -662,8 +668,9 @@ function parseIntent(text) {
 
 // ─── Fetch player data ────────────────────────────────────
 async function fetchPlayerData(username) {
+  const timeframe = RANGE_TO_TIMEFRAME[selectedRange] ?? "day";
   const res = await fetch(
-    `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}?range=${selectedRange}`
+    `https://runehelp.onrender.com/api/player/${encodeURIComponent(username)}?timeframe=${timeframe}`
   );
   if (!res.ok) throw new Error(`Player not found: ${username}`);
   return res.json();
